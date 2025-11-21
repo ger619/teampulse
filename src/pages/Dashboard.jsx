@@ -24,11 +24,16 @@ const Dashboard = () => {
     setThoughts("");
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("pulse_current_user");
+    window.location.href = "/login"; // ⬅ redirect
+  };
+
   return (
     <div className="overflow-y-scroll bg-[#FBF1E7]">
 
       {/* NAVBAR ABOVE THE LAYOUT CARD */}
-      <DashboardNavBar />
+      <DashboardNavBar onLogout={handleLogout} />
 
       {/* Main Card UI (Original Layout) */}
       <Layout>
