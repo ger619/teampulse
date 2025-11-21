@@ -1,6 +1,6 @@
 export default function Layout({ children }) {
   return (
-    <div className="min-h-screen flex flex-col items-center bg-[#FBF1E7] p-4">
+    <div className="flex flex-col items-center bg-[#FBF1E7] p-4">
       <div className="bg-white px-10 py-4 rounded-2xl border border-green-200 shadow-md inline-flex items-center gap-3 mt-6 mb-4">
         <PulseLogo />
         <div>

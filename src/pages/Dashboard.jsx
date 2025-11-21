@@ -5,6 +5,7 @@ import WorkloadSelector from "../components/WorkloadSelector";
 import ThoughtsBox from "../components/ThoughtsBox";
 import SubmitButton from "../components/SubmitButton";
 import { saveCheckIn, getCurrentUser } from "../utils/storage";
+import DashboardNavBar from "./DashboardNavbar";
 
 const Dashboard = () => {
   const user = getCurrentUser();
@@ -24,19 +25,26 @@ const Dashboard = () => {
   };
 
   return (
-    <Layout>
-      <h2 className="text-xl text-[#27A5A1] font-bold mb-4">
-        Hello {user.name} 👋
-      </h2>
+    <div className="overflow-y-scroll bg-[#FBF1E7]">
 
-      <div className="max-h-[60vh] overflow-y-auto pr-2">
-        <MoodSelector selected={mood} onChange={setMood} />
-        <WorkloadSelector selected={workload} onChange={setWorkload} />
-        <ThoughtsBox value={thoughts} onChange={setThoughts} />
-      </div>
+      {/* NAVBAR ABOVE THE LAYOUT CARD */}
+      <DashboardNavBar />
 
-      <SubmitButton disabled={isDisabled} onClick={handleSubmit} />
-    </Layout>
+      {/* Main Card UI (Original Layout) */}
+      <Layout>
+        <h2 className="text-xl text-[#27A5A1] font-bold mb-4">
+          Hello {user.name} 👋
+        </h2>
+
+        <div className="max-h-[60vh] overflow-y-auto pr-2">
+          <MoodSelector selected={mood} onChange={setMood} />
+          <WorkloadSelector selected={workload} onChange={setWorkload} />
+          <ThoughtsBox value={thoughts} onChange={setThoughts} />
+        </div>
+
+        <SubmitButton disabled={isDisabled} onClick={handleSubmit} />
+      </Layout>
+    </div>
   );
 }
 
