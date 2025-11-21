@@ -1,16 +1,13 @@
 import { useState } from "react";
 
-const DashboardNavBar = ({ onLogout, children }) => {
-  const [activeTab, setActiveTab] = useState("checkin");
+const DashboardNavBar = ({ activeTab, onTabChange, onLogout, children }) => {
   const user = JSON.parse(localStorage.getItem("pulse_current_user"));
 
   return (
     <div className="bg-[#FBF1E7] flex flex-col">
-
       {/* Sticky Navbar */}
       <nav className="bg-white border-b border-green-200 shadow-sm sticky top-0 z-50">
         <div className="px-4 py-3 flex justify-between items-center">
-
           {/* Left side */}
           <div className="flex items-center space-x-3">
             {/* Logo */}
@@ -27,7 +24,7 @@ const DashboardNavBar = ({ onLogout, children }) => {
             {/* Tabs */}
             <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
               <button
-                onClick={() => setActiveTab("checkin")}
+                onClick={() => onTabChange("checkin")}
                 className={`px-3 py-1.5 text-sm rounded-md ${
                   activeTab === "checkin"
                     ? "bg-white shadow text-[#27A5A1]"
@@ -37,7 +34,7 @@ const DashboardNavBar = ({ onLogout, children }) => {
                 Check-in 📝
               </button>
               <button
-                onClick={() => setActiveTab("teamfeed")}
+                onClick={() => onTabChange("teamfeed")}
                 className={`px-3 py-1.5 text-sm rounded-md ${
                   activeTab === "teamfeed"
                     ? "bg-white shadow text-[#27A5A1]"
@@ -70,12 +67,11 @@ const DashboardNavBar = ({ onLogout, children }) => {
               </svg>
             </button>
           </div>
-
         </div>
       </nav>
 
-      {/* Main content area – compact, centered, original style */}
-      <main className="w-full max-w-md mx-auto px-4 py-6 flex-grow">
+      {/* Main content area */}
+      <main className="w-full max-w-2xl mx-auto px-4 py-6 flex-grow">
         {children}
       </main>
     </div>
