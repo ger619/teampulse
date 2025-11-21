@@ -1,16 +1,13 @@
 import { useState } from "react";
 
-function Login() {
+const Login = ({ onLoginSuccess }) => {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
 
   const isDisabled = !form.email || !form.password;
 
   const handleChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const handleLogin = (e) => {
@@ -33,7 +30,9 @@ function Login() {
     }
 
     localStorage.setItem("pulse_current_user", JSON.stringify(user));
-    alert("Logged in successfully! 🎉");
+
+    // notify parent (App.jsx)
+    onLoginSuccess();
   };
 
   return (
@@ -49,9 +48,7 @@ function Login() {
 
       {/* Email */}
       <div>
-        <label className="block mb-1 text-sm font-medium text-gray-700">
-          Email
-        </label>
+        <label className="block mb-1 text-sm font-medium text-gray-700">Email</label>
         <input
           type="email"
           name="email"
@@ -64,9 +61,7 @@ function Login() {
 
       {/* Password */}
       <div>
-        <label className="block mb-1 text-sm font-medium text-gray-700">
-          Password
-        </label>
+        <label className="block mb-1 text-sm font-medium text-gray-700">Password</label>
         <input
           type="password"
           name="password"

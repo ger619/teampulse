@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-function Signup() {
+const Signup = ({ onSignupComplete }) => {
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -15,10 +15,7 @@ function Signup() {
     !form.name || !form.email || !form.password || !form.team;
 
   const handleChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const handleSignup = (e) => {
@@ -43,7 +40,13 @@ function Signup() {
     localStorage.setItem("pulse_users", JSON.stringify(users));
 
     setSuccess("You're all set! 🎉 Welcome to PulseTeam!");
+
     setForm({ name: "", email: "", password: "", team: "" });
+
+    // switch to login after 0.8s
+    setTimeout(() => {
+      onSignupComplete();
+    }, 800);
   };
 
   return (
@@ -67,9 +70,7 @@ function Signup() {
 
       {/* Name */}
       <div>
-        <label className="block mb-1 text-sm font-medium text-gray-700">
-          Name
-        </label>
+        <label className="block mb-1 text-sm font-medium text-gray-700">Name</label>
         <input
           type="text"
           name="name"
@@ -82,9 +83,7 @@ function Signup() {
 
       {/* Email */}
       <div>
-        <label className="block mb-1 text-sm font-medium text-gray-700">
-          Email
-        </label>
+        <label className="block mb-1 text-sm font-medium text-gray-700">Email</label>
         <input
           type="email"
           name="email"
@@ -97,9 +96,7 @@ function Signup() {
 
       {/* Password */}
       <div>
-        <label className="block mb-1 text-sm font-medium text-gray-700">
-          Password
-        </label>
+        <label className="block mb-1 text-sm font-medium text-gray-700">Password</label>
         <input
           type="password"
           name="password"
@@ -112,9 +109,7 @@ function Signup() {
 
       {/* Team */}
       <div>
-        <label className="block mb-1 text-sm font-medium text-gray-700">
-          Team
-        </label>
+        <label className="block mb-1 text-sm font-medium text-gray-700">Team</label>
         <select
           name="team"
           value={form.team}
@@ -129,7 +124,6 @@ function Signup() {
         </select>
       </div>
 
-      {/* Submit */}
       <button
         disabled={isDisabled}
         className={`w-full py-3 rounded-xl font-semibold transition ${
