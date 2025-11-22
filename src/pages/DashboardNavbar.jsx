@@ -22,7 +22,7 @@ const DashboardNavBar = ({ activeTab, onTabChange, onLogout, children }) => {
         {/* Left: Logo & Brand */}
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center">
-            {/* Re-using the PulseLogo SVG inline or component */}
+            {/* Inline SVG Logo (No Import) */}
             <svg className="w-8 h-8" viewBox="0 0 100 100" fill="none">
               <path
                 d="M50 85C50 85 20 65 20 40C20 25 30 15 45 15C55 15 60 20 50 30C40 20 45 15 55 15C70 15 80 25 80 40C80 65 50 85 50 85Z"
@@ -51,7 +51,23 @@ const DashboardNavBar = ({ activeTab, onTabChange, onLogout, children }) => {
 
         {/* Center: Navigation Pills */}
         <div className="hidden md:flex items-center gap-2">
-          {/* Check-in Tab */}
+          
+          {/* 1. Dashboard Tab */}
+          <button
+            onClick={() => onTabChange("dashboard")}
+            className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all ${
+              activeTab === "dashboard"
+                ? "bg-[#A0D6C2] text-white shadow-sm font-semibold"
+                : "text-gray-500 hover:text-[#5BB5A2] font-medium"
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+            <span>Dashboard</span>
+          </button>
+
+          {/* 2. Check-in Tab */}
           <button
             onClick={() => onTabChange("checkin")}
             className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all ${
@@ -66,7 +82,7 @@ const DashboardNavBar = ({ activeTab, onTabChange, onLogout, children }) => {
             <span>Check-in</span>
           </button>
 
-          {/* Team Feed Tab */}
+          {/* 3. Team Feed Tab */}
           <button
             onClick={() => onTabChange("teamfeed")}
             className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all ${
@@ -90,7 +106,7 @@ const DashboardNavBar = ({ activeTab, onTabChange, onLogout, children }) => {
                 {user?.name || "Me"}
               </p>
               <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">
-                Member
+                {user?.team ? `${user.team} • Member` : "Member"}
               </p>
             </div>
             
@@ -112,7 +128,8 @@ const DashboardNavBar = ({ activeTab, onTabChange, onLogout, children }) => {
           </button>
         </div>
       </nav>
-      
+
+      {/* Main Content Area */}
       <main className="flex-1 p-6 md:p-10 flex flex-col items-center overflow-y-auto w-full">
         {children}
       </main>
