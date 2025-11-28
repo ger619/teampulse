@@ -1,48 +1,89 @@
 import { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { logInRequest, logInSuccess, logInFailure } from "../redux/user/logInSlice";
 
 const Login = ({ onLoginSuccess }) => {
   const [form, setForm] = useState({ email: "", password: "" });
-  const [error, setError] = useState("");
-
-  const isDisabled = !form.email || !form.password;
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  
+  const { loading, error: reduxError, success } = useSelector((state) => state.logIn);
+  
+  const isDisabled = !form.email || !form.password || loading;
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    setError("");
 
     if (isDisabled) {
-      setError("Oops! We need all the info to get you started 😊");
       return;
     }
 
-    const users = JSON.parse(localStorage.getItem("pulse_users")) || [];
-    const user = users.find(
-      (u) => u.email === form.email && u.password === form.password
-    );
+    dispatch(logInRequest());
 
-    if (!user) {
-      setError("No matching account found 😕");
-      return;
+    try {
+      const response = await fetch('https://team-pulse-bend.onrender.com/api/v1/auth/login/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: form.email,
+          password: form.password
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Login failed');
+      }
+
+      const responseData = await response.json();
+      const authToken = responseData.access;
+
+      localStorage.setItem('authToken', authToken);
+      dispatch(logInSuccess(authToken));
+      
+      if (onLoginSuccess) {
+        onLoginSuccess();
+      }
+      
+      navigate('/feed');
+
+    } catch (error) {
+      dispatch(logInFailure(error.message));
     }
-
-    localStorage.setItem("pulse_current_user", JSON.stringify(user));
-
-    // notify parent (App.jsx)
-    onLoginSuccess();
   };
+
+  const errorMessage = reduxError || (isDisabled && !form.email && !form.password ? "Oops! We need all the info to get you started 😊" : "");
 
   return (
     <form onSubmit={handleLogin} className="space-y-4">
-
       {/* Error */}
-      {error && (
+      {(reduxError || errorMessage) && (
         <div className="flex items-start gap-2 p-3 mb-2 bg-red-50 border border-red-300 rounded-lg text-red-700 text-sm">
           <span>❗</span>
-          <p>{error}</p>
+          <p>{reduxError || errorMessage}</p>
+        </div>
+      )}
+
+      {/* Success Message */}
+      {success && (
+        <div className="flex items-start gap-2 p-3 mb-2 bg-green-50 border border-green-300 rounded-lg text-green-700 text-sm">
+          <span>✅</span>
+          <p>Login successful!</p>
+        </div>
+      )}
+
+      {/* Loading Indicator */}
+      {loading && (
+        <div className="flex items-start gap-2 p-3 mb-2 bg-blue-50 border border-blue-300 rounded-lg text-blue-700 text-sm">
+          <span>⏳</span>
+          <p>Logging in...</p>
         </div>
       )}
 
@@ -56,6 +97,7 @@ const Login = ({ onLoginSuccess }) => {
           value={form.email}
           onChange={handleChange}
           className="w-full px-4 py-2 rounded-xl bg-gray-100 outline-none"
+          disabled={loading}
         />
       </div>
 
@@ -69,6 +111,7 @@ const Login = ({ onLoginSuccess }) => {
           value={form.password}
           onChange={handleChange}
           className="w-full px-4 py-2 rounded-xl bg-gray-100 outline-none"
+          disabled={loading}
         />
       </div>
 
@@ -79,8 +122,9 @@ const Login = ({ onLoginSuccess }) => {
             ? "bg-[#A0D6C2] bg-opacity-40 text-gray-400 cursor-not-allowed"
             : "bg-[#A0D6C2] text-white hover:bg-[#8acdb5]"
         }`}
+        type="submit"
       >
-        Login
+        {loading ? "Logging in..." : "Login"}
       </button>
     </form>
   );

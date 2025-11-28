@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { signUpRequest, signUpSuccess, signUpFailure, setToken } from "../redux/user/signUpSlice";
 
 const Signup = ({ onSignupComplete }) => {
   const [form, setForm] = useState({
@@ -8,55 +11,76 @@ const Signup = ({ onSignupComplete }) => {
     team: "",
   });
 
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-
-  const isDisabled =
-    !form.name || !form.email || !form.password || !form.team;
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  
+  const { loading, error: reduxError, success } = useSelector((state) => state.signUp);
+  
+  const isDisabled = !form.name || !form.email || !form.password || !form.team || loading;
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSignup = (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
-
+    
     if (isDisabled) {
-      setError("Oops! We need all the info to get you started 😊");
       return;
     }
 
-    const users = JSON.parse(localStorage.getItem("pulse_users")) || [];
-    const exists = users.find((u) => u.email === form.email);
+    dispatch(signUpRequest());
 
-    if (exists) {
-      setError("This email is already registered 😅");
-      return;
+    try {
+      const apiData = {
+        username: form.email.split('@')[0],
+        email: form.email,
+        password: form.password,
+        first_name: form.name.split(' ')[0],
+        last_name: form.name.split(' ').slice(1).join(' ') || form.name,
+      };
+
+      const response = await fetch('https://team-pulse-bend.onrender.com/api/v1/auth/register/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(apiData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Registration failed');
+      }
+
+      const responseData = await response.json();
+      const authToken = responseData.access;
+
+      localStorage.setItem('authToken', authToken);
+      dispatch(signUpSuccess());
+      dispatch(setToken(authToken));
+
+      setForm({ name: "", email: "", password: "", team: "" });
+
+      setTimeout(() => {
+        navigate('/feed');
+        if (onSignupComplete) {
+          onSignupComplete();
+        }
+      }, 800);
+
+    } catch (error) {
+      dispatch(signUpFailure(error.message));
     }
-
-    users.push(form);
-    localStorage.setItem("pulse_users", JSON.stringify(users));
-
-    setSuccess("You're all set! 🎉 Welcome to PulseTeam!");
-
-    setForm({ name: "", email: "", password: "", team: "" });
-
-    // switch to login after 0.8s
-    setTimeout(() => {
-      onSignupComplete();
-    }, 800);
   };
 
   return (
     <form onSubmit={handleSignup} className="space-y-4">
-
       {/* Error */}
-      {error && (
+      {reduxError && (
         <div className="flex items-start gap-2 p-3 mb-2 bg-red-50 border border-red-300 rounded-lg text-red-700 text-sm">
           <span>❗</span>
-          <p>{error}</p>
+          <p>{reduxError}</p>
         </div>
       )}
 
@@ -64,7 +88,15 @@ const Signup = ({ onSignupComplete }) => {
       {success && (
         <div className="flex items-start gap-2 p-3 mb-2 bg-green-50 border border-green-300 rounded-lg text-green-700 text-sm">
           <span>🎉</span>
-          <p>{success}</p>
+          <p>You're all set! 🎉 Welcome to PulseTeam!</p>
+        </div>
+      )}
+
+      {/* Loading Indicator */}
+      {loading && (
+        <div className="flex items-start gap-2 p-3 mb-2 bg-blue-50 border border-blue-300 rounded-lg text-blue-700 text-sm">
+          <span>⏳</span>
+          <p>Creating your account...</p>
         </div>
       )}
 
@@ -78,6 +110,7 @@ const Signup = ({ onSignupComplete }) => {
           value={form.name}
           onChange={handleChange}
           className="w-full px-4 py-2 rounded-xl bg-gray-100 outline-none"
+          disabled={loading}
         />
       </div>
 
@@ -91,6 +124,7 @@ const Signup = ({ onSignupComplete }) => {
           value={form.email}
           onChange={handleChange}
           className="w-full px-4 py-2 rounded-xl bg-gray-100 outline-none"
+          disabled={loading}
         />
       </div>
 
@@ -104,6 +138,7 @@ const Signup = ({ onSignupComplete }) => {
           value={form.password}
           onChange={handleChange}
           className="w-full px-4 py-2 rounded-xl bg-gray-100 outline-none"
+          disabled={loading}
         />
       </div>
 
@@ -115,6 +150,7 @@ const Signup = ({ onSignupComplete }) => {
           value={form.team}
           onChange={handleChange}
           className="w-full px-4 py-2 rounded-xl bg-gray-100 outline-none"
+          disabled={loading}
         >
           <option value="">Choose your squad</option>
           <option value="Engineering">Engineering</option>
@@ -131,8 +167,9 @@ const Signup = ({ onSignupComplete }) => {
             ? "bg-[#F7A68C] bg-opacity-40 text-gray-400 cursor-not-allowed"
             : "bg-[#F7A68C] text-white hover:bg-[#f79a7b]"
         }`}
+        type="submit"
       >
-        Join PulseTeam
+        {loading ? "Creating Account..." : "Join PulseTeam"}
       </button>
     </form>
   );
