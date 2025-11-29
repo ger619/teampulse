@@ -4,7 +4,6 @@ const DashboardNavBar = ({ activeTab, onTabChange, onLogout, children }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   
   // Get user info from auth token or fallback to localStorage
-  const authToken = localStorage.getItem("authToken");
   const oldUser = JSON.parse(localStorage.getItem("pulse_current_user") || "null");
   
   // Helper to get initials
