@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    tailwindcss(), // <-- Correct placement
+    tailwindcss(),
     react({
       babel: {
         plugins: [
@@ -14,4 +14,14 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://team-pulse-bend.onrender.com',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, '/api/v1')
+      }
+    }
+  }
 })
