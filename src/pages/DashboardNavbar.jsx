@@ -1,8 +1,12 @@
 import { useState } from "react";
 
 const DashboardNavBar = ({ activeTab, onTabChange, onLogout, children }) => {
-  const user = JSON.parse(localStorage.getItem("pulse_current_user"));
-
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  
+  // Get user info from auth token or fallback to localStorage
+  const authToken = localStorage.getItem("authToken");
+  const oldUser = JSON.parse(localStorage.getItem("pulse_current_user") || "null");
+  
   // Helper to get initials
   const getInitials = (name) => {
     if (!name) return "ME";
@@ -14,6 +18,16 @@ const DashboardNavBar = ({ activeTab, onTabChange, onLogout, children }) => {
       .toUpperCase();
   };
 
+  const handleLogoutClick = async () => {
+    setIsLoggingOut(true);
+    try {
+      await onLogout();
+    } catch (error) {
+      console.error("Logout error:", error);
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
     <div className="bg-[#FBF1E7] flex flex-col h-screen overflow-hidden">
       {/* Sticky Navbar */}
@@ -22,7 +36,6 @@ const DashboardNavBar = ({ activeTab, onTabChange, onLogout, children }) => {
         {/* Left: Logo & Brand */}
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center">
-            {/* Inline SVG Logo (No Import) */}
             <svg className="w-8 h-8" viewBox="0 0 100 100" fill="none">
               <path
                 d="M50 85C50 85 20 65 20 40C20 25 30 15 45 15C55 15 60 20 50 30C40 20 45 15 55 15C70 15 80 25 80 40C80 65 50 85 50 85Z"
@@ -51,8 +64,7 @@ const DashboardNavBar = ({ activeTab, onTabChange, onLogout, children }) => {
 
         {/* Center: Navigation Pills */}
         <div className="hidden md:flex items-center gap-2">
-          
-          {/* 1. Dashboard Tab */}
+          {/* Dashboard Tab */}
           <button
             onClick={() => onTabChange("dashboard")}
             className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all ${
@@ -67,7 +79,7 @@ const DashboardNavBar = ({ activeTab, onTabChange, onLogout, children }) => {
             <span>Dashboard</span>
           </button>
 
-          {/* 2. Check-in Tab */}
+          {/* Check-in Tab */}
           <button
             onClick={() => onTabChange("checkin")}
             className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all ${
@@ -82,7 +94,7 @@ const DashboardNavBar = ({ activeTab, onTabChange, onLogout, children }) => {
             <span>Check-in</span>
           </button>
 
-          {/* 3. Team Feed Tab */}
+          {/* Team Feed Tab */}
           <button
             onClick={() => onTabChange("teamfeed")}
             className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all ${
@@ -103,28 +115,40 @@ const DashboardNavBar = ({ activeTab, onTabChange, onLogout, children }) => {
           <div className="flex items-center gap-3 text-right">
             <div className="hidden sm:block leading-tight">
               <p className="text-sm font-semibold text-gray-700">
-                {user?.name || "Me"}
+                {oldUser?.name || "Welcome!"}
               </p>
               <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">
-                {user?.team ? `${user.team} • Member` : "Member"}
+                {oldUser?.team ? `${oldUser.team} • Member` : "Team Member"}
               </p>
             </div>
             
             {/* Avatar */}
             <div className="w-10 h-10 rounded-full bg-[#A0D6C2] flex items-center justify-center text-white font-bold text-sm shadow-sm border-2 border-white ring-1 ring-gray-100">
-              {getInitials(user?.name)}
+              {getInitials(oldUser?.name)}
             </div>
           </div>
 
           {/* Logout Button */}
           <button
-            onClick={onLogout}
-            className="text-gray-800 hover:text-red-500 transition-colors p-1 rounded-md hover:bg-red-50"
-            title="Sign Out"
+            onClick={handleLogoutClick}
+            disabled={isLoggingOut}
+            className={`text-gray-800 transition-colors p-1 rounded-md ${
+              isLoggingOut 
+                ? "text-gray-400 cursor-not-allowed" 
+                : "hover:text-red-500 hover:bg-red-50"
+            }`}
+            title={isLoggingOut ? "Logging out..." : "Sign Out"}
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
+            {isLoggingOut ? (
+              <svg className="animate-spin h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : (
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            )}
           </button>
         </div>
       </nav>
