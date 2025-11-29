@@ -26,7 +26,7 @@ const Login = ({ onLoginSuccess }) => {
     dispatch(logInRequest());
 
     try {
-      const response = await fetch('https://team-pulse-bend.onrender.com/api/v1/auth/login/', {
+      const response = await fetch('/api/auth/login/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
