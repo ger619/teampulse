@@ -1,16 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 const TeamFeedView = () => {
-  const [posts, setPosts] = useState([]);
   const [newPost, setNewPost] = useState("");
   const [postAnonymously, setPostAnonymously] = useState(false);
   const user = JSON.parse(localStorage.getItem("pulse_current_user"));
-
-  // Load posts
-  useEffect(() => {
-    const savedPosts = JSON.parse(localStorage.getItem("pulse_posts") || "[]");
-    setPosts(savedPosts);
-  }, []);
 
   const calculateStats = () => {
     const checkins = JSON.parse(localStorage.getItem("pulse_checkins") || "[]");
@@ -49,9 +42,9 @@ const TeamFeedView = () => {
       isAnonymous: postAnonymously,
     };
 
-    const updatedPosts = [post, ...posts];
-    setPosts(updatedPosts);
-    localStorage.setItem("pulse_posts", JSON.stringify(updatedPosts));
+    // const updatedPosts = [post, ...posts];
+    // setPosts(updatedPosts);
+    // localStorage.setItem("pulse_posts", JSON.stringify(updatedPosts));
 
     setNewPost("");
     setPostAnonymously(false);

@@ -9,7 +9,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
 
   const handleLogout = () => {
-    localStorage.removeItem("pulse_current_user");
+    localStorage.removeItem("authToken");
     window.location.href = "/";
   };
 
