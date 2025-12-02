@@ -1,26 +1,24 @@
 import { useState } from "react";
 import DashboardNavBar from "./DashboardNavbar";
 import DashboardHome from "./DashboardHome";
-import CheckInView from "./CheckInView";
-import TeamFeedView from "./TeamFeedView";
+import CheckInPage from "./CheckInPage";
 
-const Dashboard = () => {
-  // Set the default active tab to 'dashboard' since it is the new landing page
+const Dashboard = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState("dashboard");
-
-  const handleLogout = () => {
-    localStorage.removeItem("authToken");
-    window.location.href = "/";
-  };
 
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
         return <DashboardHome />;
       case "checkin":
-        return <CheckInView />;
+        return <CheckInPage />; // Add this case
       case "teamfeed":
-        return <TeamFeedView />;
+        return (
+          <div className="w-full max-w-4xl">
+            <h1 className="text-2xl font-bold text-gray-800 mb-6">Team Feed</h1>
+            <p className="text-gray-600">Team feed content will go here...</p>
+          </div>
+        );
       default:
         return <DashboardHome />;
     }
@@ -29,12 +27,12 @@ const Dashboard = () => {
   return (
     <DashboardNavBar 
       activeTab={activeTab} 
-      onTabChange={setActiveTab}
-      onLogout={handleLogout}
+      onTabChange={setActiveTab} 
+      onLogout={onLogout}
     >
       {renderContent()}
     </DashboardNavBar>
   );
-}
+};
 
 export default Dashboard;

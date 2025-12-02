@@ -1,9 +1,9 @@
 const moods = [
-  { id: "fire", label: "🔥 On Fire" },
-  { id: "happy", label: "😄 Happy" },
-  { id: "meh", label: "😐 Meh" },
-  { id: "sad", label: "😢 Low" },
-  { id: "angry", label: "😠 Frustrated" },
+  { id: "fire", label: "🔥 On Fire", value: 5 },
+  { id: "happy", label: "😄 Happy", value: 4 },
+  { id: "meh", label: "😐 Meh", value: 3 },
+  { id: "sad", label: "😢 Low", value: 2 },
+  { id: "angry", label: "😠 Frustrated", value: 1 },
 ];
 
 export default function MoodSelector({ selected, onChange }) {
@@ -17,10 +17,10 @@ export default function MoodSelector({ selected, onChange }) {
         {moods.map((m) => (
           <button
             key={m.id}
-            onClick={() => onChange(m.id)}
+            onClick={() => onChange(m.value)}
             className={`px-4 py-3 rounded-xl border transition text-sm whitespace-nowrap
                 ${
-                  selected === m.id
+                  selected === m.value
                     ? "bg-[#A0D6C2] text-white border-green-300 shadow"
                     : "bg-gray-100 text-gray-600 border-gray-200"
                 }`}

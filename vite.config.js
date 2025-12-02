@@ -20,7 +20,14 @@ export default defineConfig({
         target: 'https://team-pulse-bend.onrender.com',
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, '/api/v1')
+        rewrite: (path) => {
+          // For auth endpoints, keep /api/auth
+          if (path.startsWith('/api/auth')) {
+            return path.replace(/^\/api/, '/api/v1');
+          }
+          // For pulse-logs endpoints, route correctly
+          return path.replace(/^\/api/, '/api/v1');
+        }
       }
     }
   }
