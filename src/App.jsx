@@ -1,24 +1,39 @@
 import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { loadUserFromStorage } from "./redux/user/logInSlice";
 import Home from "./Home";
 import Dashboard from "./pages/Dashboard";
 
 const App = () => {
-  const [currentUser, setCurrentUser] = useState(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const dispatch = useDispatch();
+  
+  // Get auth state from Redux
+  const { isLoggedIn, user } = useSelector((state) => state.login || {});
+  
+  // Keep currentUser state for backward compatibility
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     console.log("🔍 App mounted - checking authentication...");
+    
+    // Load user from localStorage into Redux
+    console.log("📦 Loading user data from localStorage to Redux...");
+    dispatch(loadUserFromStorage());
+    
     const authToken = localStorage.getItem("authToken");
     console.log("📱 Auth token exists:", !!authToken);
     
-    if (authToken) {
+    // Set currentUser based on Redux state for compatibility
+    if (isLoggedIn && user) {
+      console.log("✅ Redux user data loaded:", user);
       console.log("✅ Setting user to authenticated");
       setCurrentUser(true);
     } else {
-      console.log("❌ No auth token found");
+      console.log("❌ No auth token or user data found");
       setCurrentUser(false);
     }
-  }, []);
+  }, [dispatch, isLoggedIn, user]);
 
   const handleLogout = async () => {
     console.log("🚪 Logout button clicked");
@@ -54,6 +69,12 @@ const App = () => {
       const tokenAfterRemoval = localStorage.getItem("authToken");
       console.log("🔍 Token after removal:", tokenAfterRemoval);
       
+      // Dispatch logout action to clear Redux state
+      console.log("🔄 Dispatching logout action to Redux...");
+      import('./redux/user/logInSlice').then(module => {
+        dispatch(module.logOut());
+      });
+      
       // Update state to trigger re-render
       console.log("🔄 Setting currentUser to false");
       setCurrentUser(false);
@@ -71,7 +92,7 @@ const App = () => {
     setCurrentUser(true);
   };
 
-  console.log("🔄 Current render - user:", currentUser, "logging out:", isLoggingOut);
+  console.log("🔄 Current render - Redux isLoggedIn:", isLoggedIn, "Redux user:", user, "currentUser:", currentUser, "logging out:", isLoggingOut);
 
   // Show loading during logout
   if (isLoggingOut) {
@@ -98,7 +119,10 @@ const App = () => {
     );
   }
 
-  return currentUser ? (
+  // Use Redux state as primary source, fallback to currentUser for compatibility
+  const isAuthenticated = isLoggedIn || currentUser;
+  
+  return isAuthenticated ? (
     <Dashboard onLogout={handleLogout} />
   ) : (
     <Home onLoginSuccess={handleLoginSuccess} />

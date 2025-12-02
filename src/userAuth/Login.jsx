@@ -44,9 +44,27 @@ const Login = ({ onLoginSuccess }) => {
 
       const responseData = await response.json();
       const authToken = responseData.access;
+      
+      // Extract user data from response - adjust based on your API response
+      const userData = {
+        // Your API should return these fields
+        name: responseData.name || `${responseData.first_name} ${responseData.last_name}`,
+        first_name: responseData.first_name,
+        last_name: responseData.last_name,
+        email: form.email,
+        team: responseData.team || null,
+        // Add other user fields as needed
+      };
 
+      // Save to localStorage
       localStorage.setItem('authToken', authToken);
-      dispatch(logInSuccess(authToken));
+      localStorage.setItem('pulse_current_user', JSON.stringify(userData));
+      
+      // Dispatch to Redux with both token and user data
+      dispatch(logInSuccess({ 
+        token: authToken, 
+        user: userData 
+      }));
       
       if (onLoginSuccess) {
         onLoginSuccess();
