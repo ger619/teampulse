@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { logInRequest, logInSuccess, logInFailure } from "../redux/user/logInSlice";
+import { login } from "../redux/user/logInSlice";
 
 const Login = ({ onLoginSuccess }) => {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -23,57 +23,20 @@ const Login = ({ onLoginSuccess }) => {
       return;
     }
 
-    dispatch(logInRequest());
-
     try {
-      const response = await fetch('/api/auth/login/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: form.email,
-          password: form.password
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Login failed');
-      }
-
-      const responseData = await response.json();
-      const authToken = responseData.access;
-      
-      // Extract user data from response - adjust based on your API response
-      const userData = {
-        // Your API should return these fields
-        name: responseData.name || `${responseData.first_name} ${responseData.last_name}`,
-        first_name: responseData.first_name,
-        last_name: responseData.last_name,
+      const result = await dispatch(login({
         email: form.email,
-        team: responseData.team || null,
-        // Add other user fields as needed
-      };
-
-      // Save to localStorage
-      localStorage.setItem('authToken', authToken);
-      localStorage.setItem('pulse_current_user', JSON.stringify(userData));
-      
-      // Dispatch to Redux with both token and user data
-      dispatch(logInSuccess({ 
-        token: authToken, 
-        user: userData 
-      }));
+        password: form.password
+      })).unwrap();
       
       if (onLoginSuccess) {
         onLoginSuccess();
       }
       
       navigate('/feed');
-
     } catch (error) {
-      dispatch(logInFailure(error.message));
+      // Error is already handled by Redux
+      console.error('Login failed:', error);
     }
   };
 

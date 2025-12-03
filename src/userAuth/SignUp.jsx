@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { signUpRequest, signUpSuccess, signUpFailure, setToken } from "../redux/user/signUpSlice";
+import { signup } from "../redux/user/signUpSlice";
 
 const Signup = ({ onSignupComplete }) => {
   const [form, setForm] = useState({
@@ -14,14 +14,10 @@ const Signup = ({ onSignupComplete }) => {
   
   const { loading, error: reduxError, success } = useSelector((state) => state.signUp);
   
-  const isDisabled = !form.name || !form.email || !form.password || !form.team || loading;
+  const isDisabled = !form.name || !form.email || !form.password || loading;
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-    // Clear errors when user starts typing
-    if (reduxError) {
-      dispatch(signUpFailure(null));
-    }
   };
 
   const handleSignup = async (e) => {
@@ -30,8 +26,6 @@ const Signup = ({ onSignupComplete }) => {
     if (isDisabled && !loading) {
       return;
     }
-
-    dispatch(signUpRequest());
 
     try {
       // Split the full name into first and last name
@@ -48,28 +42,7 @@ const Signup = ({ onSignupComplete }) => {
         last_name: lastName,
       };
 
-      const response = await fetch('/api/auth/register/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(apiData),
-      });
-
-      const responseData = await response.json();
-
-      if (!response.ok) {
-        throw new Error(responseData.message || `Registration failed: ${response.status}`);
-      }
-
-      const authToken = responseData.access;
-
-      // Store token in localStorage
-      localStorage.setItem('authToken', authToken);
-      
-      // Dispatch success actions
-      dispatch(signUpSuccess());
-      dispatch(setToken(authToken));
+      await dispatch(signup(apiData)).unwrap();
 
       // Clear form
       setForm({ name: "", email: "", password: "", team: "" });
@@ -82,7 +55,8 @@ const Signup = ({ onSignupComplete }) => {
       }, 2000);
 
     } catch (error) {
-      dispatch(signUpFailure(error.message));
+      // Error is already handled by Redux
+      console.error('Signup failed:', error);
     }
   };
 
@@ -164,7 +138,7 @@ const Signup = ({ onSignupComplete }) => {
 
         {/* Team */}
         <div>
-          <label className="block mb-1 text-sm font-medium text-gray-700">Team</label>
+          <label className="block mb-1 text-sm font-medium text-gray-700">Team (Optional)</label>
           <select
             name="team"
             value={form.team}
@@ -172,7 +146,7 @@ const Signup = ({ onSignupComplete }) => {
             className="w-full px-4 py-2 rounded-xl bg-gray-100 outline-none focus:bg-white focus:ring-2 focus:ring-[#F7A68C] transition-all"
             disabled={loading || success}
           >
-            <option value="">Choose your squad</option>
+            <option value="">Choose your squad (optional)</option>
             <option value="Engineering">Engineering</option>
             <option value="Marketing">Marketing</option>
             <option value="Support">Support</option>
