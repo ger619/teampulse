@@ -9,7 +9,7 @@ const App = () => {
   const dispatch = useDispatch();
   
   // Get auth state from Redux
-  const { isLoggedIn, user } = useSelector((state) => state.login || {});
+  const { isLoggedIn, user } = useSelector((state) => state.logIn || {});
   
   // Keep currentUser state for backward compatibility
   const [currentUser, setCurrentUser] = useState(null);
@@ -20,7 +20,9 @@ const App = () => {
     // Load user from localStorage into Redux
     console.log("📦 Loading user data from localStorage to Redux...");
     dispatch(loadUserFromStorage());
-    
+  }, [dispatch]);
+
+  useEffect(() => {
     const authToken = localStorage.getItem("authToken");
     console.log("📱 Auth token exists:", !!authToken);
     
@@ -29,11 +31,14 @@ const App = () => {
       console.log("✅ Redux user data loaded:", user);
       console.log("✅ Setting user to authenticated");
       setCurrentUser(true);
+    } else if (authToken) {
+      // Has token but Redux not loaded yet - keep as null (loading)
+      setCurrentUser(null);
     } else {
       console.log("❌ No auth token or user data found");
       setCurrentUser(false);
     }
-  }, [dispatch, isLoggedIn, user]);
+  }, [isLoggedIn, user]);
 
   const handleLogout = async () => {
     console.log("🚪 Logout button clicked");

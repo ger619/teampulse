@@ -5,46 +5,76 @@ import WorkloadSelector from "../components/WorkloadSelector";
 import ThoughtsBox from "../components/ThoughtsBox";
 import SubmitButton from "../components/SubmitButton";
 import { createPulseLog, clearPulseLogState, resetPulseLogSuccess } from "../redux/pulseLogs/pulseLogSlice";
+import { fetchMoods, fetchWorkloads } from "../redux/moodWorkload/moodWorkloadSlice";
+import { fetchTeams } from "../redux/teams/teamSlice";
 
 const CheckInPage = () => {
   const [mood, setMood] = useState(null);
   const [workload, setWorkload] = useState(null);
   const [comment, setComment] = useState("");
-  const [team, setTeam] = useState(""); // You'll need to get the team ID from your user data
+  const [team, setTeam] = useState("");
   
   const dispatch = useDispatch();
   const { loading, success, error } = useSelector((state) => state.pulseLogs);
-  const { user } = useSelector((state) => state.login);
+  const { user } = useSelector((state) => state.logIn);
+  const { moods, workloads, loading: moodWorkloadLoading, error: moodWorkloadError } = useSelector((state) => state.moodWorkload);
+  const { teams } = useSelector((state) => state.teams);
   
-  // Get team ID from user data or localStorage
+  // Fetch moods and workloads on component mount
   useEffect(() => {
-    if (user?.team) {
-      setTeam(user.team);
-    } else {
-      const localStorageUser = JSON.parse(localStorage.getItem("pulse_current_user") || "null");
-      if (localStorageUser?.team) {
-        setTeam(localStorageUser.team);
+    // Only fetch if user is logged in
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      dispatch(fetchMoods());
+      dispatch(fetchWorkloads());
+      dispatch(fetchTeams());
+    }
+    dispatch(clearPulseLogState());
+  }, [dispatch]);
+  
+  // Get team UUID from user's team names
+  useEffect(() => {
+    if (user?.teams && user.teams.length > 0 && teams && teams.length > 0) {
+      // user.teams is an array of team names, find the matching team UUID
+      const userTeamName = user.teams[0]; // Get first team name
+      const matchingTeam = teams.find(t => t.team_name === userTeamName);
+      if (matchingTeam) {
+        setTeam(matchingTeam.id); // Set team UUID
+        console.log("Set team UUID:", matchingTeam.id, "for team:", userTeamName);
       }
     }
-    
-    // Reset success state when component mounts
-    dispatch(clearPulseLogState());
-  }, [dispatch, user]);
+  }, [user, teams]);
 
   const handleSubmit = async () => {
-    if (!mood || !workload || !team) {
-      alert("Please select mood, workload, and ensure you have a team assigned.");
+    if (!mood || !workload) {
+      alert("Please select mood and workload.");
       return;
     }
 
+    // Log user data for debugging
+    console.log("=== PULSE LOG SUBMISSION DEBUG ===");
+    console.log("User from Redux:", user);
+    console.log("Team UUID:", team);
+    console.log("Auth token:", localStorage.getItem('authToken') ? 'Present' : 'Missing');
+
+    // Build the request based on API documentation
+    // NOTE: user field is NOT required - backend infers from JWT token
     const pulseLogData = {
       mood: mood,
       workload: workload,
-      comment: comment || "", // Optional field
-      team: team,
+      comment: comment || "",
     };
 
-    console.log("Submitting pulse log:", pulseLogData);
+    // Add team UUID if available
+    if (team) {
+      pulseLogData.team = team;
+      console.log("Adding team UUID to request:", team);
+    } else {
+      console.warn("WARNING: No team UUID available - submission may fail");
+    }
+
+    console.log("Final pulse log data:", pulseLogData);
+    console.log("=================================");
     dispatch(createPulseLog(pulseLogData));
   };
 
@@ -68,6 +98,31 @@ const CheckInPage = () => {
   return (
     <div className="w-full max-w-2xl mx-auto">
       <div className="bg-white rounded-2xl shadow-md p-6 md:p-8">
+        {/* Loading moods/workloads */}
+        {moodWorkloadLoading && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+              <p className="text-sm text-blue-600">Loading options...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Mood/Workload Error */}
+        {moodWorkloadError && (
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 rounded-full bg-yellow-100 flex items-center justify-center">
+                <span className="text-yellow-600 text-sm">!</span>
+              </div>
+              <div>
+                <p className="font-medium text-yellow-800">Could not load mood/workload options</p>
+                <p className="text-sm text-yellow-600 mt-1">{moodWorkloadError}</p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Success Message */}
         {success && (
           <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl">
@@ -121,31 +176,19 @@ const CheckInPage = () => {
 
         {/* Selected Values Debug (remove in production) */}
         <div className="mt-6 pt-6 border-t border-gray-200 text-sm text-gray-500">
-          <p>Debug info (remove this in production):</p>
-          <p>Mood: {mood ? moods.find(m => m.value === mood)?.label : "Not selected"}</p>
-          <p>Workload: {workload ? workloads.find(w => w.value === workload)?.label : "Not selected"}</p>
-          <p>Team ID: {team || "Not set"}</p>
+          <p className="font-bold mb-2">Debug info (remove this in production):</p>
+          <p>Mood: {mood || "Not selected"}</p>
+          <p>Workload: {workload || "Not selected"}</p>
+          <p>Team: {team || "Not set"}</p>
           <p>Character count: {comment.length}/500</p>
+          <p>Available moods: {moods.length} {moods.length > 0 && `(${moods.map(m => m.value).join(', ')})`}</p>
+          <p>Available workloads: {workloads.length} {workloads.length > 0 && `(${workloads.map(w => w.value).join(', ')})`}</p>
+          <p>Auth token: {localStorage.getItem('authToken') ? 'Present' : 'Missing'}</p>
+          <p>User logged in: {user ? 'Yes' : 'No'}</p>
         </div>
       </div>
     </div>
   );
 };
-
-// Add these back at the bottom for reference
-const moods = [
-  { id: "fire", label: "🔥 On Fire", value: 5 },
-  { id: "happy", label: "😄 Happy", value: 4 },
-  { id: "meh", label: "😐 Meh", value: 3 },
-  { id: "sad", label: "😢 Low", value: 2 },
-  { id: "angry", label: "😠 Frustrated", value: 1 },
-];
-
-const workloads = [
-  { id: "light", label: "🌤️ Light", value: 1 },
-  { id: "medium", label: "⛅ Moderate", value: 2 },
-  { id: "heavy", label: "🌧️ Heavy", value: 3 },
-  { id: "overload", label: "⛈️ Overloaded", value: 4 },
-];
 
 export default CheckInPage;

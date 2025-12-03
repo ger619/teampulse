@@ -1,17 +1,22 @@
 import { useState } from "react";
+import { useSelector } from "react-redux";
 import DashboardNavBar from "./DashboardNavbar";
 import DashboardHome from "./DashboardHome";
 import CheckInPage from "./CheckInPage";
+import AdminPanel from "./AdminPanel";
 
 const Dashboard = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const { user } = useSelector((state) => state.logIn);
 
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
         return <DashboardHome />;
       case "checkin":
-        return <CheckInPage />; // Add this case
+        return <CheckInPage />;
+      case "admin":
+        return <AdminPanel />;
       case "teamfeed":
         return (
           <div className="w-full max-w-4xl">
@@ -29,6 +34,7 @@ const Dashboard = ({ onLogout }) => {
       activeTab={activeTab} 
       onTabChange={setActiveTab} 
       onLogout={onLogout}
+      isAdmin={user?.is_staff}
     >
       {renderContent()}
     </DashboardNavBar>

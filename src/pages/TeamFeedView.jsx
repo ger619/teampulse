@@ -1,23 +1,39 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchPulseLogs } from "../redux/pulseLogs/pulseLogSlice";
 
 const TeamFeedView = () => {
   const [newPost, setNewPost] = useState("");
   const [postAnonymously, setPostAnonymously] = useState(false);
-  const user = JSON.parse(localStorage.getItem("pulse_current_user"));
+  const [posts, setPosts] = useState([]); // State for posts
+  
+  const dispatch = useDispatch();
+  const { logs, loading } = useSelector((state) => state.pulseLogs);
+  const { user } = useSelector((state) => state.logIn);
+
+  // Fetch pulse logs on mount
+  useEffect(() => {
+    dispatch(fetchPulseLogs());
+  }, [dispatch]);
 
   const calculateStats = () => {
-    const checkins = JSON.parse(localStorage.getItem("pulse_checkins") || "[]");
+    if (!logs || logs.length === 0) {
+      return {
+        counts: { great: 0, okay: 0, support: 0 },
+        total: 0
+      };
+    }
     
-    // Count specific moods
+    // Count specific moods based on numeric values
     const counts = {
-      great: checkins.filter((c) => c.mood === "fire" || c.mood === "good").length,
-      okay: checkins.filter((c) => c.mood === "okay").length,
-      support: checkins.filter((c) => c.mood === "bad" || c.mood === "coffee").length,
+      great: logs.filter((log) => log.mood >= 4).length,
+      okay: logs.filter((log) => log.mood === 3).length,
+      support: logs.filter((log) => log.mood <= 2).length,
     };
 
     return {
       counts,
-      total: checkins.length
+      total: logs.length
     };
   };
 
@@ -29,22 +45,18 @@ const TeamFeedView = () => {
     const post = {
       id: Date.now().toString(),
       content: newPost,
-      author: postAnonymously ? "Team Member" : user?.name,
+      author: postAnonymously ? "Team Member" : (user?.username || user?.email || "Unknown"),
       initials: postAnonymously
         ? "?"
-        : user?.name
-            ?.split(" ")
-            .map((n) => n[0])
-            .join("")
-            .toUpperCase()
-            .slice(0, 2),
+        : (user?.first_name && user?.last_name)
+            ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase()
+            : user?.username?.slice(0, 2).toUpperCase() || "??",
       timestamp: new Date().toISOString(),
       isAnonymous: postAnonymously,
     };
 
-    // const updatedPosts = [post, ...posts];
-    // setPosts(updatedPosts);
-    // localStorage.setItem("pulse_posts", JSON.stringify(updatedPosts));
+    setPosts([post, ...posts]);
+    // TODO: Save to backend when posts API is available
 
     setNewPost("");
     setPostAnonymously(false);
@@ -67,6 +79,14 @@ const TeamFeedView = () => {
   return (
     <div className="space-y-8 animate-fadeIn max-w-4xl mx-auto w-full font-sans">
       
+      {/* Loading State */}
+      {loading && (
+        <div className="bg-white rounded-2xl p-6 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#A0D6C2] mx-auto mb-2"></div>
+          <p className="text-sm text-gray-600">Loading team data...</p>
+        </div>
+      )}
+
       {/* 1. Stats Banner Section */}
       <div className="bg-[#A0D6C2] rounded-3xl p-6 shadow-sm flex flex-col justify-center relative overflow-hidden">
         {/* Decorative background circle */}
