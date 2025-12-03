@@ -19,13 +19,31 @@ const DashboardHome = () => {
   const [workloadDist, setWorkloadDist] = useState([]);
   const [trendData, setTrendData] = useState([]);
   const [members, setMembers] = useState([]);
-  const [activeFilter, setActiveFilter] = useState("all");
+   const [activeFilter, setActiveFilter] = useState("all");
+   const [selectedTeamId, setSelectedTeamId] = useState("");
 
   // Fetch data on component mount
-  useEffect(() => {
-    dispatch(fetchPulseLogs());
-    dispatch(fetchTeams());
-  }, [dispatch]);
+   useEffect(() => {
+      dispatch(fetchTeams());
+   }, [dispatch]);
+
+   // When teams or user change, set default selected team to user's first team if available
+   useEffect(() => {
+      if (user?.teams && user.teams.length > 0 && teams && teams.length > 0) {
+         const userTeamName = user.teams[0];
+         const matchingTeam = teams.find(t => t.team_name === userTeamName);
+         if (matchingTeam) {
+            setSelectedTeamId(matchingTeam.id);
+         }
+      }
+   }, [user, teams]);
+
+   // Fetch pulse logs with team filter when selectedTeamId changes
+   useEffect(() => {
+      const filters = {};
+      if (selectedTeamId) filters.team = selectedTeamId;
+      dispatch(fetchPulseLogs(filters));
+   }, [dispatch, selectedTeamId]);
 
   // Process pulse logs data when logs change
   useEffect(() => {
@@ -146,21 +164,28 @@ const DashboardHome = () => {
           <h1 className="text-2xl font-medium mb-1">Team Pulse Dashboard</h1>
           <p className="opacity-90 italic font-light">Monitor your team's wellbeing and workload</p>
         </div>
-        <div className="flex items-center gap-3">
-          <select className="bg-white/20 border border-white/30 rounded-lg px-4 py-2 text-sm outline-none cursor-pointer hover:bg-white/30 transition">
-            <option className="text-gray-800">All Teams</option>
-            <option className="text-gray-800">Engineering</option>
-            <option className="text-gray-800">Design</option>
-          </select>
+            <div className="flex items-center gap-3">
+               <select
+                  value={selectedTeamId}
+                  onChange={(e) => setSelectedTeamId(e.target.value)}
+                  className="bg-white/20 border border-white/30 rounded-lg px-4 py-2 text-sm outline-none cursor-pointer hover:bg-white/30 transition"
+               >
+                  <option value="" className="text-gray-800">All Teams</option>
+                  {teams && teams.map((team) => (
+                     <option key={team.id} value={team.id} className="text-gray-800">
+                        {team.team_name}
+                     </option>
+                  ))}
+               </select>
           <button className="bg-white/20 border border-white/30 px-4 py-2 rounded-lg text-sm hover:bg-white/30 transition flex items-center gap-2">
              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
              Export
           </button>
-          <button className="bg-[#5BB5A2] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4a9685] transition shadow-sm">
-             Message
-          </button>
-        </div>
-      </div>
+         <button className="bg-[#5BB5A2] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4a9685] transition shadow-sm">
+            Message
+         </button>
+         </div>
+         </div>
 
       {/* 2. Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -307,7 +332,7 @@ const DashboardHome = () => {
                onClick={() => setActiveFilter('attention')}
                className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${activeFilter === 'attention' ? 'bg-[#F7A68C] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >
-               Needs Attention ({stats.needsAttention})
+               Needs Attention ({members.filter(m => m.needsAttention).length})
             </button>
             <button 
                onClick={() => setActiveFilter('pending')}
@@ -378,7 +403,7 @@ const DashboardHome = () => {
          </div>
       </div>
     </div>
-  );
+   );
 };
 
 export default DashboardHome;

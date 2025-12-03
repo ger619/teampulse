@@ -4,6 +4,7 @@ import DashboardNavBar from "./DashboardNavbar";
 import DashboardHome from "./DashboardHome";
 import CheckInPage from "./CheckInPage";
 import AdminPanel from "./AdminPanel";
+import TeamFeedView from "./TeamFeedView";
 
 const Dashboard = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -18,12 +19,7 @@ const Dashboard = ({ onLogout }) => {
       case "admin":
         return <AdminPanel />;
       case "teamfeed":
-        return (
-          <div className="w-full max-w-4xl">
-            <h1 className="text-2xl font-bold text-gray-800 mb-6">Team Feed</h1>
-            <p className="text-gray-600">Team feed content will go here...</p>
-          </div>
-        );
+        return <TeamFeedView />;
       default:
         return <DashboardHome />;
     }
