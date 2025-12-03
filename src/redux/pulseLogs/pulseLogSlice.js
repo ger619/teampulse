@@ -1,27 +1,24 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createPulseLog as createPulseLogAPI, getPulseLogs } from '../../api/pulseLogService';
 
 // Async thunk for creating a pulse log
 export const createPulseLog = createAsyncThunk(
   'pulseLogs/createPulseLog',
   async (pulseLogData, { rejectWithValue }) => {
     try {
-      const authToken = localStorage.getItem('authToken');
-      
-      const response = await fetch('/api/pulse-logs/', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(pulseLogData),
-      });
+      return await createPulseLogAPI(pulseLogData);
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create pulse log');
-      }
-
-      return await response.json();
+// Async thunk for fetching pulse logs
+export const fetchPulseLogs = createAsyncThunk(
+  'pulseLogs/fetchPulseLogs',
+  async (filters = {}, { rejectWithValue }) => {
+    try {
+      return await getPulseLogs(filters);
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -33,6 +30,8 @@ const initialState = {
   success: false,
   error: null,
   currentLog: null,
+  logs: [],
+  totalCount: 0,
 };
 
 const pulseLogSlice = createSlice({
@@ -65,6 +64,20 @@ const pulseLogSlice = createSlice({
       .addCase(createPulseLog.rejected, (state, action) => {
         state.loading = false;
         state.success = false;
+        state.error = action.payload;
+      })
+      .addCase(fetchPulseLogs.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchPulseLogs.fulfilled, (state, action) => {
+        state.loading = false;
+        state.logs = action.payload.results || [];
+        state.totalCount = action.payload.count || 0;
+        state.error = null;
+      })
+      .addCase(fetchPulseLogs.rejected, (state, action) => {
+        state.loading = false;
         state.error = action.payload;
       });
   },
