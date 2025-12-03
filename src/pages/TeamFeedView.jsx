@@ -6,6 +6,8 @@ const TeamFeedView = () => {
   const [newPost, setNewPost] = useState("");
   const [postAnonymously, setPostAnonymously] = useState(false);
   const [posts, setPosts] = useState([]); // State for posts
+  const [postStatus, setPostStatus] = useState(null); // 'success' | 'error' | null
+  const [postMessage, setPostMessage] = useState("");
   
   const dispatch = useDispatch();
   const { logs, loading } = useSelector((state) => state.pulseLogs);
@@ -55,7 +57,17 @@ const TeamFeedView = () => {
       isAnonymous: postAnonymously,
     };
 
-    setPosts([post, ...posts]);
+    try {
+      const updatedPosts = [post, ...posts];
+      setPosts(updatedPosts);
+      localStorage.setItem("pulse_posts", JSON.stringify(updatedPosts));
+      setPostStatus('success');
+      setPostMessage('Your update was added locally.');
+    } catch (e) {
+      console.error('Failed to save post locally:', e);
+      setPostStatus('error');
+      setPostMessage('Could not save your post.');
+    }
     // TODO: Save to backend when posts API is available
 
     setNewPost("");
@@ -78,6 +90,31 @@ const TeamFeedView = () => {
 
   return (
     <div className="space-y-8 animate-fadeIn max-w-4xl mx-auto w-full font-sans">
+      {/* Post Status Messages */}
+      {postStatus === 'success' && (
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex items-center gap-3">
+          <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+            <span className="text-green-600 text-sm">✓</span>
+          </div>
+          <div>
+            <p className="font-medium text-green-800">Post submitted</p>
+            <p className="text-sm text-green-700">{postMessage}</p>
+          </div>
+          <button onClick={() => setPostStatus(null)} className="ml-auto text-green-700 hover:text-green-900">Dismiss</button>
+        </div>
+      )}
+      {postStatus === 'error' && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center gap-3">
+          <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center">
+            <span className="text-red-600 text-sm">!</span>
+          </div>
+          <div>
+            <p className="font-medium text-red-800">Post failed</p>
+            <p className="text-sm text-red-700">{postMessage}</p>
+          </div>
+          <button onClick={() => setPostStatus(null)} className="ml-auto text-red-700 hover:text-red-900">Dismiss</button>
+        </div>
+      )}
       
       {/* Loading State */}
       {loading && (
