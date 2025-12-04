@@ -173,19 +173,6 @@ const CheckInPage = () => {
           loading={loading}
           onClick={handleSubmit} 
         />
-
-        {/* Selected Values Debug (remove in production) */}
-        <div className="mt-6 pt-6 border-t border-gray-200 text-sm text-gray-500">
-          <p className="font-bold mb-2">Debug info (remove this in production):</p>
-          <p>Mood: {mood || "Not selected"}</p>
-          <p>Workload: {workload || "Not selected"}</p>
-          <p>Team: {team || "Not set"}</p>
-          <p>Character count: {comment.length}/500</p>
-          <p>Available moods: {moods.length} {moods.length > 0 && `(${moods.map(m => m.value).join(', ')})`}</p>
-          <p>Available workloads: {workloads.length} {workloads.length > 0 && `(${workloads.map(w => w.value).join(', ')})`}</p>
-          <p>Auth token: {localStorage.getItem('authToken') ? 'Present' : 'Missing'}</p>
-          <p>User logged in: {user ? 'Yes' : 'No'}</p>
-        </div>
       </div>
     </div>
   );
