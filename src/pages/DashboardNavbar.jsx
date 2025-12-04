@@ -1,10 +1,15 @@
 import { useState } from "react";
+import { useSelector } from "react-redux";
 
 const DashboardNavBar = ({ activeTab, onTabChange, onLogout, isAdmin, children }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   
-  // Get user info from auth token or fallback to localStorage
+  // Prefer current user from Redux, fallback to localStorage
+  const { user: authUser } = useSelector((state) => state.logIn || {});
   const oldUser = JSON.parse(localStorage.getItem("pulse_current_user") || "null");
+  const fullName = authUser?.first_name && authUser?.last_name
+    ? `${authUser.first_name} ${authUser.last_name}`
+    : authUser?.name || authUser?.username || oldUser?.name || "Me";
   
   // Helper to get initials
   const getInitials = (name) => {
@@ -132,7 +137,7 @@ const DashboardNavBar = ({ activeTab, onTabChange, onLogout, isAdmin, children }
           <div className="flex items-center gap-3 text-right">
             <div className="hidden sm:block leading-tight">
               <p className="text-sm font-semibold text-gray-700">
-                {oldUser?.name || "Welcome!"}
+                {fullName ? `Welcome, ${fullName.split(" ")[0]}!` : "Welcome!"}
               </p>
               <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">
                 {oldUser?.team ? `${oldUser.team} • Member` : "Team Member"}
@@ -140,8 +145,11 @@ const DashboardNavBar = ({ activeTab, onTabChange, onLogout, isAdmin, children }
             </div>
             
             {/* Avatar */}
-            <div className="w-10 h-10 rounded-full bg-[#A0D6C2] flex items-center justify-center text-white font-bold text-sm shadow-sm border-2 border-white ring-1 ring-gray-100">
-              {getInitials(oldUser?.name)}
+            <div
+              className="w-10 h-10 rounded-full bg-[#A0D6C2] flex items-center justify-center text-white font-bold text-sm shadow-sm border-2 border-white ring-1 ring-gray-100"
+              title={fullName}
+            >
+              {getInitials(fullName)}
             </div>
           </div>
 
