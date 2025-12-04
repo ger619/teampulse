@@ -1,22 +1,40 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchPulseLogs } from "../redux/pulseLogs/pulseLogSlice";
+import { fetchFeedbacks, addFeedback } from "../redux/feedbacks/feedbackSlice";
 
 const TeamFeedView = () => {
   const [newPost, setNewPost] = useState("");
   const [postAnonymously, setPostAnonymously] = useState(false);
-  const [posts, setPosts] = useState([]); // State for posts
+  const [posts, setPosts] = useState([]); // Local mirror for display
   const [postStatus, setPostStatus] = useState(null); // 'success' | 'error' | null
   const [postMessage, setPostMessage] = useState("");
   
   const dispatch = useDispatch();
   const { logs, loading } = useSelector((state) => state.pulseLogs);
+  const feedbackState = useSelector((state) => state.feedbacks);
   const { user } = useSelector((state) => state.logIn);
 
-  // Fetch pulse logs on mount
+  // Fetch pulse logs and team feedbacks on mount
   useEffect(() => {
     dispatch(fetchPulseLogs());
+    dispatch(fetchFeedbacks());
   }, [dispatch]);
+
+  // Keep local posts in sync with API feedbacks
+  useEffect(() => {
+    const apiPosts = (feedbackState.items || []).map((f) => ({
+      id: f.id,
+      content: f.message,
+      author: f.is_anonymous ? "Anonymous" : f.username || "Unknown",
+      initials: f.is_anonymous
+        ? "?"
+        : (f.username || "UN").slice(0, 2).toUpperCase(),
+      timestamp: f.created_at,
+      isAnonymous: !!f.is_anonymous,
+    }));
+    setPosts(apiPosts);
+  }, [feedbackState.items]);
 
   const calculateStats = () => {
     if (!logs || logs.length === 0) {
@@ -41,37 +59,20 @@ const TeamFeedView = () => {
 
   const stats = calculateStats();
 
-  const handlePostSubmit = () => {
+  const handlePostSubmit = async () => {
     if (!newPost.trim()) return;
-
-    const post = {
-      id: Date.now().toString(),
-      content: newPost,
-      author: postAnonymously ? "Team Member" : (user?.username || user?.email || "Unknown"),
-      initials: postAnonymously
-        ? "?"
-        : (user?.first_name && user?.last_name)
-            ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase()
-            : user?.username?.slice(0, 2).toUpperCase() || "??",
-      timestamp: new Date().toISOString(),
-      isAnonymous: postAnonymously,
-    };
-
     try {
-      const updatedPosts = [post, ...posts];
-      setPosts(updatedPosts);
-      localStorage.setItem("pulse_posts", JSON.stringify(updatedPosts));
+      const result = await dispatch(
+        addFeedback({ message: newPost.trim(), is_anonymous: postAnonymously })
+      ).unwrap();
       setPostStatus('success');
-      setPostMessage('Your update was added locally.');
+      setPostMessage('Your feedback was posted to the team feed.');
+      setNewPost("");
+      setPostAnonymously(false);
     } catch (e) {
-      console.error('Failed to save post locally:', e);
       setPostStatus('error');
-      setPostMessage('Could not save your post.');
+      setPostMessage(e?.message || 'Could not post your feedback.');
     }
-    // TODO: Save to backend when posts API is available
-
-    setNewPost("");
-    setPostAnonymously(false);
   };
 
   const formatDate = (timestamp) => {
