@@ -24,7 +24,7 @@ const Login = ({ onLoginSuccess }) => {
     }
 
     try {
-      const result = await dispatch(login({
+      await dispatch(login({
         email: form.email,
         password: form.password
       })).unwrap();

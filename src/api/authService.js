@@ -7,6 +7,7 @@ export const registerUser = async (userData) => {
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include', // Include cookies
     body: JSON.stringify(userData),
   });
   return handleResponse(response);
@@ -19,33 +20,32 @@ export const loginUser = async (credentials) => {
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include', // Include cookies to receive refresh token cookie
     body: JSON.stringify(credentials),
   });
   return handleResponse(response);
 };
 
-// Refresh access token
-export const refreshToken = async (refreshToken) => {
+// Refresh access token (deprecated - now handled by tokenManager)
+export const refreshToken = async () => {
   const response = await fetch(`${API_BASE_URL}/auth/refresh/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ refresh: refreshToken }),
+    credentials: 'include', // Send refresh token cookie
   });
   return handleResponse(response);
 };
 
 // Logout user
-export const logoutUser = async (refreshToken) => {
-  const token = localStorage.getItem('authToken');
+export const logoutUser = async () => {
   const response = await fetch(`${API_BASE_URL}/auth/logout/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
     },
-    body: JSON.stringify({ refresh: refreshToken }),
+    credentials: 'include', // Send refresh token cookie to be cleared
   });
   return handleResponse(response);
 };

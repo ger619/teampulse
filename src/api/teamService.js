@@ -13,18 +13,20 @@ export const getPublicTeams = async () => {
 
 // List teams
 export const getTeams = async (page = 1) => {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_BASE_URL}/teams/?page=${page}`, {
     method: 'GET',
-    headers: getAuthHeaders(),
+    headers,
   });
   return handleResponse(response);
 };
 
 // Create team (Admin only)
 export const createTeam = async (teamData) => {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_BASE_URL}/teams/`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    headers,
     body: JSON.stringify(teamData),
   });
   return handleResponse(response);
@@ -32,18 +34,20 @@ export const createTeam = async (teamData) => {
 
 // Get team by ID
 export const getTeamById = async (teamId) => {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_BASE_URL}/teams/${teamId}/`, {
     method: 'GET',
-    headers: getAuthHeaders(),
+    headers,
   });
   return handleResponse(response);
 };
 
 // Update team (Admin only)
 export const updateTeam = async (teamId, teamData) => {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_BASE_URL}/teams/${teamId}/`, {
     method: 'PATCH',
-    headers: getAuthHeaders(),
+    headers,
     body: JSON.stringify(teamData),
   });
   return handleResponse(response);
@@ -51,9 +55,10 @@ export const updateTeam = async (teamId, teamData) => {
 
 // Delete team (Admin only)
 export const deleteTeam = async (teamId) => {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_BASE_URL}/teams/${teamId}/`, {
     method: 'DELETE',
-    headers: getAuthHeaders(),
+    headers,
   });
   if (!response.ok) {
     throw new Error(`Failed to delete team: ${response.status}`);
@@ -63,9 +68,10 @@ export const deleteTeam = async (teamId) => {
 
 // Add member to team (Admin only)
 export const addMemberToTeam = async (teamId, userId) => {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_BASE_URL}/teams/${teamId}/add-member/`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    headers,
     body: JSON.stringify({ user_id: userId }),
   });
   return handleResponse(response);
@@ -73,9 +79,10 @@ export const addMemberToTeam = async (teamId, userId) => {
 
 // Remove member from team (Admin only)
 export const removeMemberFromTeam = async (teamId, userId) => {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_BASE_URL}/teams/${teamId}/remove-member/`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    headers,
     body: JSON.stringify({ user_id: userId }),
   });
   return handleResponse(response);

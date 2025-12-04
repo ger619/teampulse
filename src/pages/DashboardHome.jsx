@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchPulseLogs } from "../redux/pulseLogs/pulseLogSlice";
 import { fetchTeams } from "../redux/teams/teamSlice";
@@ -6,7 +6,7 @@ import { fetchTeams } from "../redux/teams/teamSlice";
 const DashboardHome = () => {
   const dispatch = useDispatch();
   const { logs, loading: pulseLogsLoading } = useSelector((state) => state.pulseLogs);
-  const { teams, loading: teamsLoading } = useSelector((state) => state.teams);
+  const { teams } = useSelector((state) => state.teams);
   const { user } = useSelector((state) => state.logIn);
   
   const [stats, setStats] = useState({
@@ -22,23 +22,28 @@ const DashboardHome = () => {
    const [activeFilter, setActiveFilter] = useState("all");
    const [selectedTeamId, setSelectedTeamId] = useState("");
 
-  // Fetch data on component mount
+   // Fetch data on component mount
    useEffect(() => {
       dispatch(fetchTeams());
    }, [dispatch]);
 
-   // When teams or user change, set default selected team to user's first team if available
-   useEffect(() => {
+   // Calculate default team ID using useMemo
+   const derivedTeamId = useMemo(() => {
       if (user?.teams && user.teams.length > 0 && teams && teams.length > 0) {
          const userTeamName = user.teams[0];
          const matchingTeam = teams.find(t => t.team_name === userTeamName);
-         if (matchingTeam) {
-            setSelectedTeamId(matchingTeam.id);
-         }
+         return matchingTeam?.id || "";
       }
+      return "";
    }, [user, teams]);
 
-   // Fetch pulse logs with team filter when selectedTeamId changes
+   // Update selectedTeamId when derived value changes
+   useEffect(() => {
+      if (derivedTeamId && derivedTeamId !== selectedTeamId) {
+         // eslint-disable-next-line react-hooks/set-state-in-effect
+         setSelectedTeamId(derivedTeamId);
+      }
+   }, [derivedTeamId, selectedTeamId]);   // Fetch pulse logs with team filter when selectedTeamId changes
    useEffect(() => {
       const filters = {};
       if (selectedTeamId) filters.team = selectedTeamId;
@@ -70,16 +75,22 @@ const DashboardHome = () => {
       { label: "Overloaded", value: workloadCounts[4] + workloadCounts[5], color: "#F7A68C", percent: Math.round(((workloadCounts[4] + workloadCounts[5])/totalLogs)*100) || 0 },
     ];
 
-    setWorkloadDist(wDist);
-    setStats({
+    const newStats = {
       teamSize: uniqueUsers,
       avgMood: avgMoodValue.toFixed(1),
       needsAttention: needsAttentionCount,
-      checkInRate: 100, // This would need to be calculated based on total team members
+      checkInRate: 100,
       totalCheckIns: logs.length,
-    });
+    };
+
+    // Batch state updates
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setWorkloadDist(wDist);
+     
+    setStats(newStats);
 
     // Simple trend data (last 5 average moods)
+     
     setTrendData([3.5, 3.8, 4.0, 3.9, parseFloat(avgMoodValue.toFixed(1))]);
 
     // Group logs by user for member list
@@ -109,6 +120,7 @@ const DashboardHome = () => {
       };
     });
 
+     
     setMembers(memberData);
   }, [logs]);
 

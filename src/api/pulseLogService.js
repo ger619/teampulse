@@ -17,18 +17,20 @@ export const getPulseLogs = async (filters = {}) => {
     ? `${API_BASE_URL}/pulse-logs/?${queryString}`
     : `${API_BASE_URL}/pulse-logs/`;
   
+  const headers = await getAuthHeaders();
   const response = await fetch(url, {
     method: 'GET',
-    headers: getAuthHeaders(),
+    headers,
   });
   return handleResponse(response);
 };
 
 // Create pulse log
 export const createPulseLog = async (pulseLogData) => {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_BASE_URL}/pulse-logs/`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    headers,
     body: JSON.stringify(pulseLogData),
   });
   return handleResponse(response);
@@ -36,18 +38,20 @@ export const createPulseLog = async (pulseLogData) => {
 
 // Get pulse log by ID
 export const getPulseLogById = async (logId) => {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_BASE_URL}/pulse-logs/${logId}/`, {
     method: 'GET',
-    headers: getAuthHeaders(),
+    headers,
   });
   return handleResponse(response);
 };
 
 // Update pulse log
 export const updatePulseLog = async (logId, pulseLogData) => {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_BASE_URL}/pulse-logs/${logId}/`, {
     method: 'PATCH',
-    headers: getAuthHeaders(),
+    headers,
     body: JSON.stringify(pulseLogData),
   });
   return handleResponse(response);
@@ -55,9 +59,10 @@ export const updatePulseLog = async (logId, pulseLogData) => {
 
 // Delete pulse log
 export const deletePulseLog = async (logId) => {
+  const headers = await getAuthHeaders();
   const response = await fetch(`${API_BASE_URL}/pulse-logs/${logId}/`, {
     method: 'DELETE',
-    headers: getAuthHeaders(),
+    headers,
   });
   if (!response.ok) {
     throw new Error(`Failed to delete pulse log: ${response.status}`);

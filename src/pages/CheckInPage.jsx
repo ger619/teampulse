@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import MoodSelector from "../components/MoodSelector";
 import WorkloadSelector from "../components/WorkloadSelector";
@@ -17,45 +17,41 @@ const CheckInPage = () => {
   const dispatch = useDispatch();
   const { loading, success, error } = useSelector((state) => state.pulseLogs);
   const { user } = useSelector((state) => state.logIn);
-  const { moods, workloads, loading: moodWorkloadLoading, error: moodWorkloadError } = useSelector((state) => state.moodWorkload);
+  const { loading: moodWorkloadLoading, error: moodWorkloadError } = useSelector((state) => state.moodWorkload);
   const { teams } = useSelector((state) => state.teams);
   
   // Fetch moods and workloads on component mount
   useEffect(() => {
-    // Only fetch if user is logged in
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      dispatch(fetchMoods());
-      dispatch(fetchWorkloads());
-      dispatch(fetchTeams());
-    }
+    // Fetch data - tokenManager will handle authentication
+    dispatch(fetchMoods());
+    dispatch(fetchWorkloads());
+    dispatch(fetchTeams());
     dispatch(clearPulseLogState());
   }, [dispatch]);
   
-  // Get team UUID from user's team names
-  useEffect(() => {
+  // Get team UUID from user's team names (derived state using useMemo)
+  const derivedTeamId = useMemo(() => {
     if (user?.teams && user.teams.length > 0 && teams && teams.length > 0) {
-      // user.teams is an array of team names, find the matching team UUID
-      const userTeamName = user.teams[0]; // Get first team name
+      const userTeamName = user.teams[0];
       const matchingTeam = teams.find(t => t.team_name === userTeamName);
-      if (matchingTeam) {
-        setTeam(matchingTeam.id); // Set team UUID
-        console.log("Set team UUID:", matchingTeam.id, "for team:", userTeamName);
-      }
+      return matchingTeam?.id || "";
     }
+    return "";
   }, [user, teams]);
+
+  // Update team state when derived value changes
+  useEffect(() => {
+    if (derivedTeamId && derivedTeamId !== team) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTeam(derivedTeamId);
+    }
+  }, [derivedTeamId, team]);
 
   const handleSubmit = async () => {
     if (!mood || !workload) {
       alert("Please select mood and workload.");
       return;
     }
-
-    // Log user data for debugging
-    console.log("=== PULSE LOG SUBMISSION DEBUG ===");
-    console.log("User from Redux:", user);
-    console.log("Team UUID:", team);
-    console.log("Auth token:", localStorage.getItem('authToken') ? 'Present' : 'Missing');
 
     // Build the request based on API documentation
     // NOTE: user field is NOT required - backend infers from JWT token
@@ -68,13 +64,10 @@ const CheckInPage = () => {
     // Add team UUID if available
     if (team) {
       pulseLogData.team = team;
-      console.log("Adding team UUID to request:", team);
     } else {
       console.warn("WARNING: No team UUID available - submission may fail");
     }
 
-    console.log("Final pulse log data:", pulseLogData);
-    console.log("=================================");
     dispatch(createPulseLog(pulseLogData));
   };
 

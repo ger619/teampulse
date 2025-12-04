@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchPulseLogs } from "../redux/pulseLogs/pulseLogSlice";
 import { fetchFeedbacks, addFeedback } from "../redux/feedbacks/feedbackSlice";
@@ -13,7 +13,6 @@ const TeamFeedView = () => {
   const dispatch = useDispatch();
   const { logs, loading } = useSelector((state) => state.pulseLogs);
   const feedbackState = useSelector((state) => state.feedbacks);
-  const { user } = useSelector((state) => state.logIn);
 
   // Fetch pulse logs and team feedbacks on mount
   useEffect(() => {
@@ -21,9 +20,9 @@ const TeamFeedView = () => {
     dispatch(fetchFeedbacks());
   }, [dispatch]);
 
-  // Keep local posts in sync with API feedbacks
-  useEffect(() => {
-    const apiPosts = (feedbackState.items || []).map((f) => ({
+  // Keep local posts in sync with API feedbacks using useMemo
+  const apiPosts = useMemo(() => {
+    return (feedbackState.items || []).map((f) => ({
       id: f.id,
       content: f.message,
       author: f.is_anonymous ? "Anonymous" : f.username || "Unknown",
@@ -33,8 +32,12 @@ const TeamFeedView = () => {
       timestamp: f.created_at,
       isAnonymous: !!f.is_anonymous,
     }));
-    setPosts(apiPosts);
   }, [feedbackState.items]);
+
+  // Update posts state when API data changes
+  useEffect(() => {
+    setPosts(apiPosts);
+  }, [apiPosts]);
 
   const calculateStats = () => {
     if (!logs || logs.length === 0) {
@@ -62,7 +65,7 @@ const TeamFeedView = () => {
   const handlePostSubmit = async () => {
     if (!newPost.trim()) return;
     try {
-      const result = await dispatch(
+      await dispatch(
         addFeedback({ message: newPost.trim(), is_anonymous: postAnonymously })
       ).unwrap();
       setPostStatus('success');

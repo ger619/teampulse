@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { registerUser } from '../../api/authService';
+import { tokenManager } from '../../utils/tokenManager';
 
 // Async thunk for signup
 export const signup = createAsyncThunk(
@@ -7,13 +8,17 @@ export const signup = createAsyncThunk(
   async (userData, { rejectWithValue }) => {
     try {
       const response = await registerUser(userData);
-      const { access, refresh } = response;
+      const { access } = response;
       
-      // Store tokens
-      localStorage.setItem('authToken', access);
-      localStorage.setItem('refreshToken', refresh);
+      // Store access token in memory only (secure)
+      if (access) {
+        tokenManager.setAccessToken(access);
+      }
       
-      return { token: access, refresh, user: response };
+      // NOTE: refresh token should be set as HTTP-only cookie by backend
+      // We do NOT store it in localStorage or anywhere accessible to JavaScript
+      
+      return { user: response };
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -24,7 +29,6 @@ const initialState = {
   loading: false,
   error: null,
   success: false,
-  token: null, // Add token to initial state
 };
 
 const signUpSlice = createSlice({
@@ -43,8 +47,9 @@ const signUpSlice = createSlice({
       state.loading = false;
       state.error = action.payload;
     },
-    setToken: (state, action) => {
-      state.token = action.payload;
+    setToken: () => {
+      // Token is now managed by tokenManager, this action is deprecated
+      console.warn('setToken is deprecated - tokens are managed securely in memory');
     },
   },
   extraReducers: (builder) => {
@@ -53,10 +58,9 @@ const signUpSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(signup.fulfilled, (state, action) => {
+      .addCase(signup.fulfilled, (state) => {
         state.loading = false;
         state.success = true;
-        state.token = action.payload.token;
         state.error = null;
       })
       .addCase(signup.rejected, (state, action) => {

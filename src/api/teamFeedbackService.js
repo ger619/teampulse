@@ -6,7 +6,8 @@ export async function fetchTeamFeedbacks({ is_anonymous } = {}) {
     params.set("is_anonymous", String(is_anonymous));
   }
   const url = `${API_BASE_URL}/team-feedbacks/${params.toString() ? `?${params.toString()}` : ""}`;
-  const res = await fetch(url, { headers: getAuthHeaders() });
+  const headers = await getAuthHeaders();
+  const res = await fetch(url, { headers });
   if (!res.ok) throw new Error(`Failed to fetch team feedbacks: ${res.status}`);
   const data = await res.json();
   // Expect paginated response with results
@@ -14,9 +15,10 @@ export async function fetchTeamFeedbacks({ is_anonymous } = {}) {
 }
 
 export async function createTeamFeedback({ message, is_anonymous = false }) {
+  const headers = await getAuthHeaders();
   const res = await fetch(`${API_BASE_URL}/team-feedbacks/`, {
     method: "POST",
-    headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+    headers: { ...headers, "Content-Type": "application/json" },
     body: JSON.stringify({ message, is_anonymous }),
   });
   if (!res.ok) {
@@ -27,9 +29,10 @@ export async function createTeamFeedback({ message, is_anonymous = false }) {
 }
 
 export async function deleteTeamFeedback(id) {
+  const headers = await getAuthHeaders();
   const res = await fetch(`${API_BASE_URL}/team-feedbacks/${id}/`, {
     method: "DELETE",
-    headers: getAuthHeaders(),
+    headers,
   });
   if (!res.ok) throw new Error(`Failed to delete feedback: ${res.status}`);
   return true;

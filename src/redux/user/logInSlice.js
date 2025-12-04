@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { loginUser } from '../../api/authService';
 import { getCurrentUser } from '../../api/userService';
+import { tokenManager } from '../../utils/tokenManager';
 
 // Async thunk for login
 export const login = createAsyncThunk(
@@ -8,17 +9,22 @@ export const login = createAsyncThunk(
   async (credentials, { rejectWithValue }) => {
     try {
       const authResponse = await loginUser(credentials);
-      const { access, refresh } = authResponse;
+      const { access } = authResponse;
       
-      // Store tokens
-      localStorage.setItem('authToken', access);
-      localStorage.setItem('refreshToken', refresh);
+      // Store access token in memory only (secure)
+      if (access) {
+        tokenManager.setAccessToken(access);
+      }
+      
+      // NOTE: refresh token should be set as HTTP-only cookie by backend
+      // We do NOT store it in localStorage or anywhere accessible to JavaScript
       
       // Fetch user data
       const userData = await getCurrentUser();
+      // Store user data in localStorage (non-sensitive, for persistence)
       localStorage.setItem('pulse_current_user', JSON.stringify(userData));
       
-      return { token: access, refresh, user: userData };
+      return { user: userData };
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -29,8 +35,7 @@ const initialState = {
   loading: false,
   success: false,
   error: null,
-  token: null,
-  user: null, // Add user object
+  user: null,
   isLoggedIn: false,
 };
 
@@ -45,8 +50,7 @@ const logInSlice = createSlice({
     logInSuccess: (state, action) => {
       state.loading = false;
       state.success = true;
-      state.token = action.payload.token;
-      state.user = action.payload.user; // Store user data
+      state.user = action.payload.user;
       state.isLoggedIn = true;
     },
     logInFailure: (state, action) => {
@@ -57,17 +61,18 @@ const logInSlice = createSlice({
     logOut: (state) => {
       state.success = false;
       state.isLoggedIn = false;
-      state.token = null;
-      state.user = null; // Clear user data
+      state.user = null;
+      // Clear tokens from memory
+      tokenManager.clearTokens();
     },
-    // Add action to load user from localStorage on app start
+    // Load user from storage and check if we can refresh token
     loadUserFromStorage: (state) => {
-      const token = localStorage.getItem('authToken');
       const userString = localStorage.getItem('pulse_current_user');
       
-      if (token && userString) {
-        state.token = token;
+      if (userString) {
         state.user = JSON.parse(userString);
+        // Try to get/refresh token from HTTP-only cookie
+        // The actual token check happens when API calls are made
         state.isLoggedIn = true;
       }
     },
@@ -81,7 +86,6 @@ const logInSlice = createSlice({
       .addCase(login.fulfilled, (state, action) => {
         state.loading = false;
         state.success = true;
-        state.token = action.payload.token;
         state.user = action.payload.user;
         state.isLoggedIn = true;
         state.error = null;

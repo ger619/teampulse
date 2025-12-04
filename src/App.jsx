@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { loadUserFromStorage } from "./redux/user/logInSlice";
+import { loadUserFromStorage, logOut } from "./redux/user/logInSlice";
+import { tokenManager, migrateFromLocalStorage } from "./utils/tokenManager";
 import Home from "./Home";
 import Dashboard from "./pages/Dashboard";
 
@@ -17,25 +18,24 @@ const App = () => {
   useEffect(() => {
     console.log("🔍 App mounted - checking authentication...");
     
-    // Load user from localStorage into Redux
-    console.log("📦 Loading user data from localStorage to Redux...");
+    // Migrate old localStorage tokens to secure storage
+    migrateFromLocalStorage();
+    
+    // Load user data from localStorage into Redux
+    console.log("📦 Loading user data to Redux...");
     dispatch(loadUserFromStorage());
   }, [dispatch]);
 
   useEffect(() => {
-    const authToken = localStorage.getItem("authToken");
-    console.log("📱 Auth token exists:", !!authToken);
+    console.log("📱 Checking authentication state...");
     
     // Set currentUser based on Redux state for compatibility
     if (isLoggedIn && user) {
       console.log("✅ Redux user data loaded:", user);
       console.log("✅ Setting user to authenticated");
       setCurrentUser(true);
-    } else if (authToken) {
-      // Has token but Redux not loaded yet - keep as null (loading)
-      setCurrentUser(null);
     } else {
-      console.log("❌ No auth token or user data found");
+      console.log("❌ No user data found");
       setCurrentUser(false);
     }
   }, [isLoggedIn, user]);
@@ -45,40 +45,31 @@ const App = () => {
     setIsLoggingOut(true);
     
     try {
-      const authToken = localStorage.getItem("authToken");
-      console.log("🔑 Token before logout:", authToken);
-      
-      // Call logout API if token exists
-      if (authToken) {
-        try {
-          console.log("📡 Calling logout API...");
-          const response = await fetch('/api/auth/logout/', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${authToken}`,
-              'Content-Type': 'application/json',
-            },
-          });
-          console.log("✅ Logout API response status:", response.status);
-        } catch (apiError) {
-          console.warn("⚠️ Logout API failed, continuing with client logout:", apiError);
-        }
+      // Call logout API - backend will clear HTTP-only cookie
+      try {
+        console.log("📡 Calling logout API...");
+        const response = await fetch('/api/v1/auth/logout/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include', // Send cookies
+        });
+        console.log("✅ Logout API response status:", response.status);
+      } catch (apiError) {
+        console.warn("⚠️ Logout API failed, continuing with client logout:", apiError);
       }
       
-      // Always clear localStorage
-      console.log("🧹 Removing tokens from localStorage...");
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("pulse_current_user");
+      // Clear tokens from memory
+      console.log("🧹 Clearing tokens from memory...");
+      tokenManager.clearTokens();
       
-      // Verify removal
-      const tokenAfterRemoval = localStorage.getItem("authToken");
-      console.log("🔍 Token after removal:", tokenAfterRemoval);
+      // Clear user data from localStorage (non-sensitive data only)
+      localStorage.removeItem("pulse_current_user");
       
       // Dispatch logout action to clear Redux state
       console.log("🔄 Dispatching logout action to Redux...");
-      import('./redux/user/logInSlice').then(module => {
-        dispatch(module.logOut());
-      });
+      dispatch(logOut());
       
       // Update state to trigger re-render
       console.log("🔄 Setting currentUser to false");
