@@ -16,7 +16,6 @@ const CheckInView = () => {
     const userId = user?.email; 
 
     if (!userId) {
-        console.error("User email is missing. Cannot submit check-in.");
         return;
     }
 

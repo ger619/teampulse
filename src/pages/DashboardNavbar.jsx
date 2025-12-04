@@ -1,10 +1,15 @@
 import { useState } from "react";
+import { useSelector } from "react-redux";
 
-const DashboardNavBar = ({ activeTab, onTabChange, onLogout, children }) => {
+const DashboardNavBar = ({ activeTab, onTabChange, onLogout, isAdmin, children }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   
-  // Get user info from auth token or fallback to localStorage
+  // Prefer current user from Redux, fallback to localStorage
+  const { user: authUser } = useSelector((state) => state.logIn || {});
   const oldUser = JSON.parse(localStorage.getItem("pulse_current_user") || "null");
+  const fullName = authUser?.first_name && authUser?.last_name
+    ? `${authUser.first_name} ${authUser.last_name}`
+    : authUser?.name || authUser?.username || oldUser?.name || "Me";
   
   // Helper to get initials
   const getInitials = (name) => {
@@ -107,6 +112,24 @@ const DashboardNavBar = ({ activeTab, onTabChange, onLogout, children }) => {
             </svg>
             <span>Team Feed</span>
           </button>
+
+          {/* Admin Tab - Only visible for staff */}
+          {isAdmin && (
+            <button
+              onClick={() => onTabChange("admin")}
+              className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all ${
+                activeTab === "admin"
+                  ? "bg-purple-500 text-white shadow-sm font-semibold"
+                  : "text-gray-500 hover:text-purple-600 font-medium"
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>Admin</span>
+            </button>
+          )}
         </div>
 
         {/* Right: User Profile & Logout */}
@@ -114,7 +137,7 @@ const DashboardNavBar = ({ activeTab, onTabChange, onLogout, children }) => {
           <div className="flex items-center gap-3 text-right">
             <div className="hidden sm:block leading-tight">
               <p className="text-sm font-semibold text-gray-700">
-                {oldUser?.name || "Welcome!"}
+                {fullName ? `Welcome, ${fullName.split(" ")[0]}!` : "Welcome!"}
               </p>
               <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">
                 {oldUser?.team ? `${oldUser.team} • Member` : "Team Member"}
@@ -122,8 +145,11 @@ const DashboardNavBar = ({ activeTab, onTabChange, onLogout, children }) => {
             </div>
             
             {/* Avatar */}
-            <div className="w-10 h-10 rounded-full bg-[#A0D6C2] flex items-center justify-center text-white font-bold text-sm shadow-sm border-2 border-white ring-1 ring-gray-100">
-              {getInitials(oldUser?.name)}
+            <div
+              className="w-10 h-10 rounded-full bg-[#A0D6C2] flex items-center justify-center text-white font-bold text-sm shadow-sm border-2 border-white ring-1 ring-gray-100"
+              title={fullName}
+            >
+              {getInitials(fullName)}
             </div>
           </div>
 

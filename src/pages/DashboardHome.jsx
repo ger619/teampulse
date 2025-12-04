@@ -1,6 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchPulseLogs } from "../redux/pulseLogs/pulseLogSlice";
+import { fetchTeams } from "../redux/teams/teamSlice";
 
 const DashboardHome = () => {
+  const dispatch = useDispatch();
+  const { logs, loading: pulseLogsLoading } = useSelector((state) => state.pulseLogs);
+  const { teams } = useSelector((state) => state.teams);
+  const { user } = useSelector((state) => state.logIn);
+  
   const [stats, setStats] = useState({
     teamSize: 0,
     avgMood: 0,
@@ -11,143 +19,130 @@ const DashboardHome = () => {
   const [workloadDist, setWorkloadDist] = useState([]);
   const [trendData, setTrendData] = useState([]);
   const [members, setMembers] = useState([]);
-  const [activeFilter, setActiveFilter] = useState("all");
+   const [activeFilter, setActiveFilter] = useState("all");
+   const [selectedTeamId, setSelectedTeamId] = useState("");
 
+   // Fetch data on component mount
+   useEffect(() => {
+      dispatch(fetchTeams());
+   }, [dispatch]);
+
+   // Calculate default team ID using useMemo
+   const derivedTeamId = useMemo(() => {
+      if (user?.teams && user.teams.length > 0 && teams && teams.length > 0) {
+         const userTeamName = user.teams[0];
+         const matchingTeam = teams.find(t => t.team_name === userTeamName);
+         return matchingTeam?.id || "";
+      }
+      return "";
+   }, [user, teams]);
+
+   // Update selectedTeamId when derived value changes
+   useEffect(() => {
+      if (derivedTeamId && derivedTeamId !== selectedTeamId) {
+         // eslint-disable-next-line react-hooks/set-state-in-effect
+         setSelectedTeamId(derivedTeamId);
+      }
+   }, [derivedTeamId, selectedTeamId]);   // Fetch pulse logs with team filter when selectedTeamId changes
+   useEffect(() => {
+      const filters = {};
+      if (selectedTeamId) filters.team = selectedTeamId;
+      dispatch(fetchPulseLogs(filters));
+   }, [dispatch, selectedTeamId]);
+
+  // Process pulse logs data when logs change
   useEffect(() => {
-    // 1. Fetch Data
-    const users = JSON.parse(localStorage.getItem("pulse_users") || "[]");
-    const checkins = JSON.parse(localStorage.getItem("pulse_checkins") || "[]");
+    if (!logs || logs.length === 0) return;
 
-    // 2. Process Members & Latest Check-in
-    const memberData = users.map((u) => {
-      // Find latest check-in for this user
-      const userCheckins = checkins
-        .filter((c) => c.userId === u.email)
-        .sort((a, b) => new Date(b.date) - new Date(a.date));
-      
-      const latest = userCheckins[0];
-      
-      // Determine Status
-      let status = "active";
-      let isPending = !latest;
-      let needsAttention = false;
+    // Calculate stats from API data
+    const uniqueUsers = new Set(logs.map(log => log.user)).size;
+    const avgMoodValue = logs.reduce((acc, log) => acc + log.mood, 0) / logs.length;
+    const needsAttentionCount = logs.filter(log => log.mood <= 2 || log.workload >= 4).length;
 
-      if (latest) {
-        // Mood Scoring: fire(5), good(4), okay(3), bad(2), coffee(1)
-        const moodScore = getMoodScore(latest.mood);
-        const workloadScore = getWorkloadScore(latest.workload);
-        
-        // Needs Attention Logic: Low mood or Overwhelmed workload
-        if (moodScore <= 2 || workloadScore >= 4) {
-          needsAttention = true;
-          status = "attention";
-        }
-      } else {
-        status = "pending";
-      }
-
-      return { ...u, latestCheckIn: latest, status, needsAttention, isPending };
-    });
-
-    setMembers(memberData);
-
-    // 3. Calculate Top Level Stats
-    const teamSize = users.length;
-    
-    // Avg Mood
-    const validCheckins = checkins.filter(c => c.mood);
-    const totalMoodScore = validCheckins.reduce((acc, c) => acc + getMoodScore(c.mood), 0);
-    const avgMood = validCheckins.length ? (totalMoodScore / validCheckins.length).toFixed(1) : "0.0";
-
-    // Needs Attention Count
-    const attentionCount = memberData.filter(m => m.needsAttention).length;
-
-    // Check-in Rate (Unique users checked in / Total users)
-    const uniqueCheckins = new Set(checkins.map(c => c.userId)).size;
-    const rate = teamSize ? Math.round((uniqueCheckins / teamSize) * 100) : 0;
-
-    setStats({
-      teamSize,
-      avgMood,
-      needsAttention: attentionCount,
-      checkInRate: rate,
-      totalCheckIns: uniqueCheckins
-    });
-
-    // 4. Calculate Workload Distribution
-    const workloads = { easy: 0, manageable: 0, busy: 0, very_busy: 0, frozen: 0 };
-    let wTotal = 0;
-    validCheckins.forEach(c => {
-      if (workloads[c.workload] !== undefined) {
-        workloads[c.workload]++;
-        wTotal++;
+    // Calculate workload distribution
+    const workloadCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    logs.forEach(log => {
+      if (workloadCounts[log.workload] !== undefined) {
+        workloadCounts[log.workload]++;
       }
     });
 
-    // Convert to array for chart
+    const totalLogs = logs.length;
     const wDist = [
-      { label: "All Good", value: workloads.easy, color: "#4ADE80", percent: wTotal ? Math.round((workloads.easy/wTotal)*100) : 0 },
-      { label: "Busy But Fine", value: workloads.manageable, color: "#5BB5A2", percent: wTotal ? Math.round((workloads.manageable/wTotal)*100) : 0 }, // Main Green
-      { label: "Quite Busy", value: workloads.busy, color: "#FACC15", percent: wTotal ? Math.round((workloads.busy/wTotal)*100) : 0 },
-      { label: "Very Busy", value: workloads.very_busy + workloads.frozen, color: "#F7A68C", percent: wTotal ? Math.round(((workloads.very_busy + workloads.frozen)/wTotal)*100) : 0 }, // Orange/Red
+      { label: "Light", value: workloadCounts[1], color: "#4ADE80", percent: Math.round((workloadCounts[1]/totalLogs)*100) || 0 },
+      { label: "Moderate", value: workloadCounts[2], color: "#5BB5A2", percent: Math.round((workloadCounts[2]/totalLogs)*100) || 0 },
+      { label: "Heavy", value: workloadCounts[3], color: "#FACC15", percent: Math.round((workloadCounts[3]/totalLogs)*100) || 0 },
+      { label: "Overloaded", value: workloadCounts[4] + workloadCounts[5], color: "#F7A68C", percent: Math.round(((workloadCounts[4] + workloadCounts[5])/totalLogs)*100) || 0 },
     ];
+
+    const newStats = {
+      teamSize: uniqueUsers,
+      avgMood: avgMoodValue.toFixed(1),
+      needsAttention: needsAttentionCount,
+      checkInRate: 100,
+      totalCheckIns: logs.length,
+    };
+
+    // Batch state updates
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setWorkloadDist(wDist);
+     
+    setStats(newStats);
 
-    // 5. Calculate Trend Data (Mocking weekly data from available timestamps)
-    // For a real app, you'd group by actual weeks. Here we simulate 2 points if only 1 exists to draw a line.
-    let chartPoints = [3.5, 3.8, 4.0, 3.9, parseFloat(avgMood)]; // Default mock + current
-    if (validCheckins.length > 5) {
-       // Logic to actually group by date could go here
-       // For now, we append the current average to show the end of the line
-       chartPoints = [...chartPoints.slice(1), parseFloat(avgMood)];
-    }
-    setTrendData(chartPoints);
+    // Simple trend data (last 5 average moods)
+     
+    setTrendData([3.5, 3.8, 4.0, 3.9, parseFloat(avgMoodValue.toFixed(1))]);
 
-  }, []);
+    // Group logs by user for member list
+    const userLogsMap = {};
+    logs.forEach(log => {
+      if (!userLogsMap[log.user]) {
+        userLogsMap[log.user] = [];
+      }
+      userLogsMap[log.user].push(log);
+    });
+
+    const memberData = Object.entries(userLogsMap).map(([userId, userLogs]) => {
+      const latest = userLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
+      return {
+        name: latest.user_name || "Unknown",
+        email: userId,
+        team: latest.team_name || "No team",
+        latestCheckIn: {
+          mood: latest.mood,
+          workload: latest.workload,
+          thoughts: latest.comment,
+          date: latest.timestamp,
+        },
+        needsAttention: latest.mood <= 2 || latest.workload >= 4,
+        isPending: false,
+        status: (latest.mood <= 2 || latest.workload >= 4) ? "attention" : "active",
+      };
+    });
+
+     
+    setMembers(memberData);
+  }, [logs]);
 
   // --- Helpers ---
-  const getMoodScore = (mood) => {
-    switch (mood) {
-      case "fire": return 5;
-      case "good": return 4;
-      case "okay": return 3;
-      case "bad": return 2;
-      case "coffee": return 1;
-      default: return 3;
-    }
-  };
-  
-  const getWorkloadScore = (workload) => {
-    switch (workload) {
-      case "frozen": return 5;
-      case "very_busy": return 4;
-      case "busy": return 3;
-      case "manageable": return 2;
-      case "easy": return 1;
-      default: return 2;
-    }
+  const getMoodDetails = (moodValue) => {
+    // Map numeric mood values to emoji/labels
+    if (moodValue === 5) return { label: "Excellent", emoji: "🔥", color: "text-orange-500" };
+    if (moodValue === 4) return { label: "Good", emoji: "😄", color: "text-green-600" };
+    if (moodValue === 3) return { label: "Okay", emoji: "😐", color: "text-yellow-600" };
+    if (moodValue === 2) return { label: "Low", emoji: "😓", color: "text-orange-600" };
+    if (moodValue === 1) return { label: "Very Low", emoji: "😵", color: "text-red-600" };
+    return { label: "Unknown", emoji: "❓", color: "text-gray-400" };
   };
 
-  const getMoodDetails = (mood) => {
-     switch(mood) {
-         case "fire": return { label: "On Fire!", emoji: "🔥", color: "text-orange-500" };
-         case "good": return { label: "Pretty Good", emoji: "😄", color: "text-green-600" };
-         case "okay": return { label: "It's Okay", emoji: "😐", color: "text-yellow-600" };
-         case "bad": return { label: "Not Great", emoji: "😓", color: "text-orange-600" };
-         case "coffee": return { label: "Send Coffee", emoji: "😵", color: "text-red-600" };
-         default: return { label: "Unknown", emoji: "❓", color: "text-gray-400" };
-     }
-  };
-
-  const getWorkloadLabel = (workload) => {
-      const map = {
-          easy: "All Good",
-          manageable: "Busy But Fine",
-          busy: "Quite Busy",
-          very_busy: "Very Busy",
-          frozen: "Overfrozen"
-      };
-      return map[workload] || workload;
+  const getWorkloadLabel = (workloadValue) => {
+    // Map numeric workload values to labels
+    if (workloadValue === 1) return "Light";
+    if (workloadValue === 2) return "Moderate";
+    if (workloadValue === 3) return "Heavy";
+    if (workloadValue === 4) return "Very Heavy";
+    if (workloadValue === 5) return "Overloaded";
+    return "Unknown";
   };
 
   const formatDate = (isoString) => {
@@ -167,27 +162,42 @@ const DashboardHome = () => {
   return (
     <div className="w-full max-w-7xl animate-fadeIn space-y-8 pb-12 font-sans text-gray-800">
       
+      {/* Loading State */}
+      {pulseLogsLoading && (
+        <div className="bg-white rounded-2xl p-6 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#A0D6C2] mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard data...</p>
+        </div>
+      )}
+
       {/* 1. Top Banner */}
       <div className="bg-[#A0D6C2] rounded-2xl p-6 md:p-8 text-white shadow-sm flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <h1 className="text-2xl font-medium mb-1">Team Pulse Dashboard</h1>
           <p className="opacity-90 italic font-light">Monitor your team's wellbeing and workload</p>
         </div>
-        <div className="flex items-center gap-3">
-          <select className="bg-white/20 border border-white/30 rounded-lg px-4 py-2 text-sm outline-none cursor-pointer hover:bg-white/30 transition">
-            <option className="text-gray-800">All Teams</option>
-            <option className="text-gray-800">Engineering</option>
-            <option className="text-gray-800">Design</option>
-          </select>
+            <div className="flex items-center gap-3">
+               <select
+                  value={selectedTeamId}
+                  onChange={(e) => setSelectedTeamId(e.target.value)}
+                  className="bg-white/20 border border-white/30 rounded-lg px-4 py-2 text-sm outline-none cursor-pointer hover:bg-white/30 transition"
+               >
+                  <option value="" className="text-gray-800">All Teams</option>
+                  {teams && teams.map((team) => (
+                     <option key={team.id} value={team.id} className="text-gray-800">
+                        {team.team_name}
+                     </option>
+                  ))}
+               </select>
           <button className="bg-white/20 border border-white/30 px-4 py-2 rounded-lg text-sm hover:bg-white/30 transition flex items-center gap-2">
              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
              Export
           </button>
-          <button className="bg-[#5BB5A2] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4a9685] transition shadow-sm">
-             Message
-          </button>
-        </div>
-      </div>
+         <button className="bg-[#5BB5A2] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4a9685] transition shadow-sm">
+            Message
+         </button>
+         </div>
+         </div>
 
       {/* 2. Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -334,7 +344,7 @@ const DashboardHome = () => {
                onClick={() => setActiveFilter('attention')}
                className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${activeFilter === 'attention' ? 'bg-[#F7A68C] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >
-               Needs Attention ({stats.needsAttention})
+               Needs Attention ({members.filter(m => m.needsAttention).length})
             </button>
             <button 
                onClick={() => setActiveFilter('pending')}
@@ -405,7 +415,7 @@ const DashboardHome = () => {
          </div>
       </div>
     </div>
-  );
+   );
 };
 
 export default DashboardHome;

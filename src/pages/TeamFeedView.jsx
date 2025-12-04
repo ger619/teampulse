@@ -1,53 +1,81 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchPulseLogs } from "../redux/pulseLogs/pulseLogSlice";
+import { fetchFeedbacks, addFeedback } from "../redux/feedbacks/feedbackSlice";
 
 const TeamFeedView = () => {
   const [newPost, setNewPost] = useState("");
   const [postAnonymously, setPostAnonymously] = useState(false);
-  const user = JSON.parse(localStorage.getItem("pulse_current_user"));
+  const [posts, setPosts] = useState([]); // Local mirror for display
+  const [postStatus, setPostStatus] = useState(null); // 'success' | 'error' | null
+  const [postMessage, setPostMessage] = useState("");
+  
+  const dispatch = useDispatch();
+  const { logs, loading } = useSelector((state) => state.pulseLogs);
+  const feedbackState = useSelector((state) => state.feedbacks);
+
+  // Fetch pulse logs and team feedbacks on mount
+  useEffect(() => {
+    dispatch(fetchPulseLogs());
+    dispatch(fetchFeedbacks());
+  }, [dispatch]);
+
+  // Keep local posts in sync with API feedbacks using useMemo
+  const apiPosts = useMemo(() => {
+    return (feedbackState.items || []).map((f) => ({
+      id: f.id,
+      content: f.message,
+      author: f.is_anonymous ? "Anonymous" : f.username || "Unknown",
+      initials: f.is_anonymous
+        ? "?"
+        : (f.username || "UN").slice(0, 2).toUpperCase(),
+      timestamp: f.created_at,
+      isAnonymous: !!f.is_anonymous,
+    }));
+  }, [feedbackState.items]);
+
+  // Update posts state when API data changes
+  useEffect(() => {
+    setPosts(apiPosts);
+  }, [apiPosts]);
 
   const calculateStats = () => {
-    const checkins = JSON.parse(localStorage.getItem("pulse_checkins") || "[]");
+    if (!logs || logs.length === 0) {
+      return {
+        counts: { great: 0, okay: 0, support: 0 },
+        total: 0
+      };
+    }
     
-    // Count specific moods
+    // Count specific moods based on numeric values
     const counts = {
-      great: checkins.filter((c) => c.mood === "fire" || c.mood === "good").length,
-      okay: checkins.filter((c) => c.mood === "okay").length,
-      support: checkins.filter((c) => c.mood === "bad" || c.mood === "coffee").length,
+      great: logs.filter((log) => log.mood >= 4).length,
+      okay: logs.filter((log) => log.mood === 3).length,
+      support: logs.filter((log) => log.mood <= 2).length,
     };
 
     return {
       counts,
-      total: checkins.length
+      total: logs.length
     };
   };
 
   const stats = calculateStats();
 
-  const handlePostSubmit = () => {
+  const handlePostSubmit = async () => {
     if (!newPost.trim()) return;
-
-    const post = {
-      id: Date.now().toString(),
-      content: newPost,
-      author: postAnonymously ? "Team Member" : user?.name,
-      initials: postAnonymously
-        ? "?"
-        : user?.name
-            ?.split(" ")
-            .map((n) => n[0])
-            .join("")
-            .toUpperCase()
-            .slice(0, 2),
-      timestamp: new Date().toISOString(),
-      isAnonymous: postAnonymously,
-    };
-
-    // const updatedPosts = [post, ...posts];
-    // setPosts(updatedPosts);
-    // localStorage.setItem("pulse_posts", JSON.stringify(updatedPosts));
-
-    setNewPost("");
-    setPostAnonymously(false);
+    try {
+      await dispatch(
+        addFeedback({ message: newPost.trim(), is_anonymous: postAnonymously })
+      ).unwrap();
+      setPostStatus('success');
+      setPostMessage('Your feedback was posted to the team feed.');
+      setNewPost("");
+      setPostAnonymously(false);
+    } catch (e) {
+      setPostStatus('error');
+      setPostMessage(e?.message || 'Could not post your feedback.');
+    }
   };
 
   const formatDate = (timestamp) => {
@@ -66,7 +94,40 @@ const TeamFeedView = () => {
 
   return (
     <div className="space-y-8 animate-fadeIn max-w-4xl mx-auto w-full font-sans">
+      {/* Post Status Messages */}
+      {postStatus === 'success' && (
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex items-center gap-3">
+          <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+            <span className="text-green-600 text-sm">✓</span>
+          </div>
+          <div>
+            <p className="font-medium text-green-800">Post submitted</p>
+            <p className="text-sm text-green-700">{postMessage}</p>
+          </div>
+          <button onClick={() => setPostStatus(null)} className="ml-auto text-green-700 hover:text-green-900">Dismiss</button>
+        </div>
+      )}
+      {postStatus === 'error' && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center gap-3">
+          <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center">
+            <span className="text-red-600 text-sm">!</span>
+          </div>
+          <div>
+            <p className="font-medium text-red-800">Post failed</p>
+            <p className="text-sm text-red-700">{postMessage}</p>
+          </div>
+          <button onClick={() => setPostStatus(null)} className="ml-auto text-red-700 hover:text-red-900">Dismiss</button>
+        </div>
+      )}
       
+      {/* Loading State */}
+      {loading && (
+        <div className="bg-white rounded-2xl p-6 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#A0D6C2] mx-auto mb-2"></div>
+          <p className="text-sm text-gray-600">Loading team data...</p>
+        </div>
+      )}
+
       {/* 1. Stats Banner Section */}
       <div className="bg-[#A0D6C2] rounded-3xl p-6 shadow-sm flex flex-col justify-center relative overflow-hidden">
         {/* Decorative background circle */}

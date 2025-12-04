@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { logInRequest, logInSuccess, logInFailure } from "../redux/user/logInSlice";
+import { login } from "../redux/user/logInSlice";
 
 const Login = ({ onLoginSuccess }) => {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -23,39 +23,20 @@ const Login = ({ onLoginSuccess }) => {
       return;
     }
 
-    dispatch(logInRequest());
-
     try {
-      const response = await fetch('/api/auth/login/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: form.email,
-          password: form.password
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Login failed');
-      }
-
-      const responseData = await response.json();
-      const authToken = responseData.access;
-
-      localStorage.setItem('authToken', authToken);
-      dispatch(logInSuccess(authToken));
+      await dispatch(login({
+        email: form.email,
+        password: form.password
+      })).unwrap();
       
       if (onLoginSuccess) {
         onLoginSuccess();
       }
       
       navigate('/feed');
-
     } catch (error) {
-      dispatch(logInFailure(error.message));
+      // Error is already handled by Redux
+      console.error('Login failed:', error);
     }
   };
 

@@ -1,24 +1,23 @@
 import { useState } from "react";
+import { useSelector } from "react-redux";
 import DashboardNavBar from "./DashboardNavbar";
 import DashboardHome from "./DashboardHome";
-import CheckInView from "./CheckInView";
+import CheckInPage from "./CheckInPage";
+import AdminPanel from "./AdminPanel";
 import TeamFeedView from "./TeamFeedView";
 
-const Dashboard = () => {
-  // Set the default active tab to 'dashboard' since it is the new landing page
+const Dashboard = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState("dashboard");
-
-  const handleLogout = () => {
-    localStorage.removeItem("authToken");
-    window.location.href = "/";
-  };
+  const { user } = useSelector((state) => state.logIn);
 
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
         return <DashboardHome />;
       case "checkin":
-        return <CheckInView />;
+        return <CheckInPage />;
+      case "admin":
+        return <AdminPanel />;
       case "teamfeed":
         return <TeamFeedView />;
       default:
@@ -29,12 +28,13 @@ const Dashboard = () => {
   return (
     <DashboardNavBar 
       activeTab={activeTab} 
-      onTabChange={setActiveTab}
-      onLogout={handleLogout}
+      onTabChange={setActiveTab} 
+      onLogout={onLogout}
+      isAdmin={user?.is_staff}
     >
       {renderContent()}
     </DashboardNavBar>
   );
-}
+};
 
 export default Dashboard;
