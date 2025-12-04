@@ -1,5 +1,16 @@
 import { API_BASE_URL, getAuthHeaders, handleResponse } from './config';
 
+// List teams (public - for signup)
+export const getPublicTeams = async () => {
+  const response = await fetch(`${API_BASE_URL}/teams/`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  return handleResponse(response);
+};
+
 // List teams
 export const getTeams = async (page = 1) => {
   const response = await fetch(`${API_BASE_URL}/teams/?page=${page}`, {
