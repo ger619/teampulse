@@ -1,11 +1,19 @@
 import { useState, useEffect } from "react";
-import { getUsers } from "../../api/userService";
+import { getUsers, updateUser, deleteUser } from "../../api/userService";
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [editingUser, setEditingUser] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [formData, setFormData] = useState({
+    first_name: "",
+    last_name: "",
+    is_staff: false,
+    is_active: true,
+  });
 
   useEffect(() => {
     fetchUsers();
@@ -24,13 +32,6 @@ const UserManagement = () => {
     }
   };
 
-  const filteredUsers = users.filter(user =>
-    user.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -39,6 +40,63 @@ const UserManagement = () => {
       day: "numeric",
     });
   };
+
+  const handleEdit = (user) => {
+    setEditingUser(user);
+    setFormData({
+      first_name: user.first_name || "",
+      last_name: user.last_name || "",
+      is_staff: user.is_staff || false,
+      is_active: user.is_active !== undefined ? user.is_active : true,
+    });
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingUser) return;
+
+    setLoading(true);
+    setError(null);
+    try {
+      await updateUser(editingUser.id, formData);
+      setShowEditModal(false);
+      setEditingUser(null);
+      await fetchUsers();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (userId, username) => {
+    if (!confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      await deleteUser(userId);
+      fetchUsers();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowEditModal(false);
+    setEditingUser(null);
+  };
+
+  const filteredUsers = users.filter(user =>
+    user.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
@@ -142,10 +200,116 @@ const UserManagement = () => {
                       </div>
                     )}
                   </div>
+
+                  <div className="flex gap-2 ml-4">
+                    <button
+                      onClick={() => handleEdit(user)}
+                      className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition text-sm"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(user.id, user.username)}
+                      className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition text-sm"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-lg">Edit User</h3>
+              <button
+                onClick={handleCloseModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  First Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.first_name}
+                  onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A0D6C2] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Last Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.last_name}
+                  onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A0D6C2] outline-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="is_staff"
+                  checked={formData.is_staff}
+                  onChange={(e) => setFormData({ ...formData, is_staff: e.target.checked })}
+                  className="w-4 h-4 text-[#A0D6C2] focus:ring-[#A0D6C2] border-gray-300 rounded"
+                />
+                <label htmlFor="is_staff" className="text-sm font-medium text-gray-700">
+                  Admin (Staff)
+                </label>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="is_active"
+                  checked={formData.is_active}
+                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                  className="w-4 h-4 text-[#A0D6C2] focus:ring-[#A0D6C2] border-gray-300 rounded"
+                />
+                <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
+                  Active
+                </label>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={loading}
+                  className="flex-1 px-4 py-2 bg-[#A0D6C2] text-white rounded-lg hover:bg-[#8acdb5] transition disabled:opacity-50"
+                >
+                  {loading ? "Saving..." : "Save Changes"}
+                </button>
+                <button
+                  onClick={handleCloseModal}
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
