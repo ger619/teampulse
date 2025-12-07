@@ -71,22 +71,26 @@ const CheckInPage = ({ onNavigateTab }) => {
     dispatch(createPulseLog(pulseLogData));
   };
 
-  // Reset success message after 3 seconds
+  // Reset success message and show redirect toast
   useEffect(() => {
     if (success) {
       const timer = setTimeout(() => {
         dispatch(resetPulseLogSuccess());
-        // Reset form
         setMood(null);
         setWorkload(null);
         setComment("");
-        // Navigate to Team Feed after successful submission
+      }, 2000);
+
+      const navTimer = setTimeout(() => {
         if (typeof onNavigateTab === "function") {
           onNavigateTab("teamfeed");
         }
-      }, 3000);
+      }, 1500);
       
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(navTimer);
+      };
     }
   }, [success, dispatch]);
 
@@ -131,6 +135,16 @@ const CheckInPage = ({ onNavigateTab }) => {
                 <p className="font-medium text-green-800">Check-in submitted successfully!</p>
                 <p className="text-sm text-green-600 mt-1">Your team pulse has been recorded.</p>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Redirect Toast */}
+        {success && (
+          <div className="fixed bottom-6 right-6 z-50">
+            <div className="bg-[#A0D6C2] text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+              <span className="text-sm">Redirecting to Team Feed…</span>
             </div>
           </div>
         )}
