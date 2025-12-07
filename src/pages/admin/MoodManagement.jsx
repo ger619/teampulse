@@ -91,11 +91,11 @@ const MoodManagement = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
         <h2 className="text-2xl font-bold text-gray-800">Mood Management</h2>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-[#A0D6C2] text-white rounded-lg hover:bg-[#8acdb5] transition"
+          className="px-4 py-2 bg-[#A0D6C2] text-white rounded-lg hover:bg-[#8acdb5] transition w-full md:w-auto"
         >
           {showForm ? "Cancel" : "+ Add Mood"}
         </button>
@@ -109,12 +109,12 @@ const MoodManagement = () => {
 
       {/* Form */}
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-gray-50 rounded-xl p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="bg-gray-50 rounded-xl p-4 md:p-6 space-y-4">
           <h3 className="font-semibold text-lg">
             {editingMood ? "Edit Mood" : "Add New Mood"}
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Value (1-5) *
@@ -158,18 +158,18 @@ const MoodManagement = () => {
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-[#A0D6C2] text-white rounded-lg hover:bg-[#8acdb5] transition disabled:opacity-50"
+              className="px-6 py-2 bg-[#A0D6C2] text-white rounded-lg hover:bg-[#8acdb5] transition disabled:opacity-50 w-full sm:w-auto"
             >
               {loading ? "Saving..." : editingMood ? "Update" : "Create"}
             </button>
             <button
               type="button"
               onClick={handleCancel}
-              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition w-full sm:w-auto"
             >
               Cancel
             </button>
@@ -201,7 +201,7 @@ const MoodManagement = () => {
                       {mood.value}
                     </div>
                     <div>
-                      <h4 className="font-semibold text-gray-800">{mood.description}</h4>
+                      <h4 className="font-semibold text-gray-800 truncate" title={mood.description}>{mood.description}</h4>
                       <p className="text-sm text-gray-500">Value: {mood.value}</p>
                     </div>
                   </div>

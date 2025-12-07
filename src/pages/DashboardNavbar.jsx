@@ -35,7 +35,7 @@ const DashboardNavBar = ({ activeTab, onTabChange, onLogout, isAdmin, children }
   return (
     <div className="bg-[#FBF1E7] flex flex-col h-screen overflow-hidden">
       {/* Sticky Navbar */}
-      <nav className="bg-white border-b border-green-100 px-6 py-3 flex items-center justify-between shadow-sm shrink-0 z-50">
+      <nav className="bg-white border-b border-green-100 px-4 md:px-6 py-3 flex items-center justify-between shadow-sm shrink-0 z-50">
         
         {/* Left: Logo & Brand */}
         <div className="flex items-center gap-3">
@@ -66,22 +66,24 @@ const DashboardNavBar = ({ activeTab, onTabChange, onLogout, isAdmin, children }
           </span>
         </div>
 
-        {/* Center: Navigation Pills */}
+        {/* Center: Navigation Pills (Desktop) */}
         <div className="hidden md:flex items-center gap-2">
-          {/* Dashboard Tab */}
-          <button
-            onClick={() => onTabChange("dashboard")}
-            className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all ${
-              activeTab === "dashboard"
-                ? "bg-[#A0D6C2] text-white shadow-sm font-semibold"
-                : "text-gray-500 hover:text-[#5BB5A2] font-medium"
-            }`}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-            </svg>
-            <span>Dashboard</span>
-          </button>
+          {/* Dashboard Tab - Only visible for admin */}
+          {isAdmin && (
+            <button
+              onClick={() => onTabChange("dashboard")}
+              className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all ${
+                activeTab === "dashboard"
+                  ? "bg-[#A0D6C2] text-white shadow-sm font-semibold"
+                  : "text-gray-500 hover:text-[#5BB5A2] font-medium"
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+              <span>Dashboard</span>
+            </button>
+          )}
 
           {/* Check-in Tab */}
           <button
@@ -133,7 +135,7 @@ const DashboardNavBar = ({ activeTab, onTabChange, onLogout, isAdmin, children }
         </div>
 
         {/* Right: User Profile & Logout */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 md:gap-6">
           <div className="flex items-center gap-3 text-right">
             <div className="hidden sm:block leading-tight">
               <p className="text-sm font-semibold text-gray-700">
@@ -178,8 +180,69 @@ const DashboardNavBar = ({ activeTab, onTabChange, onLogout, isAdmin, children }
         </div>
       </nav>
 
+      {/* Mobile Bottom Nav */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-green-100 px-3 py-2 flex items-center justify-around z-50">
+        {/* Dashboard (admin only) */}
+        {isAdmin && (
+          <button
+            onClick={() => onTabChange("dashboard")}
+            className={`flex flex-col items-center gap-1 text-xs ${
+              activeTab === "dashboard" ? "text-[#27A5A1]" : "text-gray-500"
+            }`}
+            title="Dashboard"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+            <span>Home</span>
+          </button>
+        )}
+        {/* Check-in */}
+        <button
+          onClick={() => onTabChange("checkin")}
+          className={`flex flex-col items-center gap-1 text-xs ${
+            activeTab === "checkin" ? "text-[#27A5A1]" : "text-gray-500"
+          }`}
+          title="Check-in"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          <span>Check-in</span>
+        </button>
+        {/* Team Feed */}
+        <button
+          onClick={() => onTabChange("teamfeed")}
+          className={`flex flex-col items-center gap-1 text-xs ${
+            activeTab === "teamfeed" ? "text-[#27A5A1]" : "text-gray-500"
+          }`}
+          title="Team Feed"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          <span>Feed</span>
+        </button>
+        {/* Admin (admin only) */}
+        {isAdmin && (
+          <button
+            onClick={() => onTabChange("admin")}
+            className={`flex flex-col items-center gap-1 text-xs ${
+              activeTab === "admin" ? "text-purple-600" : "text-gray-500"
+            }`}
+            title="Admin"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span>Admin</span>
+          </button>
+        )}
+      </nav>
+
       {/* Main Content Area */}
-      <main className="flex-1 p-6 md:p-10 flex flex-col items-center overflow-y-auto w-full">
+      <main className="flex-1 p-4 md:p-10 flex flex-col items-center overflow-y-auto w-full">
         {children}
       </main>
     </div>

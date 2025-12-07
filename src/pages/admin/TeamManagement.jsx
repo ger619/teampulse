@@ -4,7 +4,8 @@ import { getUsers } from "../../api/userService";
 
 const TeamManagement = () => {
   const [teams, setTeams] = useState([]);
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState([]); // full dataset across all pages
+  const [userSearch, setUserSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -17,7 +18,7 @@ const TeamManagement = () => {
 
   useEffect(() => {
     fetchTeams();
-    fetchUsers();
+    fetchAllUsers();
   }, []);
 
   const fetchTeams = async () => {
@@ -33,12 +34,22 @@ const TeamManagement = () => {
     }
   };
 
-  const fetchUsers = async () => {
+  // Fetch all users across paginated API for admin-wide selection and search
+  const fetchAllUsers = async () => {
     try {
-      const response = await getUsers();
-      setUsers(response.results || response || []);
+      let page = 1;
+      let aggregated = [];
+      for (let i = 0; i < 100; i++) {
+        const response = await getUsers(page);
+        const results = response.results || [];
+        aggregated = aggregated.concat(results);
+        const hasNext = !!response.next;
+        if (!hasNext) break;
+        page += 1;
+      }
+      setUsers(aggregated);
     } catch (err) {
-      console.error("Error fetching users:", err);
+      console.error("Error fetching all users:", err);
     }
   };
 
@@ -136,7 +147,14 @@ const TeamManagement = () => {
   const getAvailableUsers = () => {
     if (!memberModal) return [];
     const memberIds = memberModal.members?.map(m => m.id) || [];
-    return users.filter(u => !memberIds.includes(u.id));
+    const pool = users.filter(u => !memberIds.includes(u.id));
+    if (!userSearch) return pool;
+    const term = userSearch.toLowerCase();
+    return pool.filter(u =>
+      (u.full_name || "").toLowerCase().includes(term) ||
+      (u.email || "").toLowerCase().includes(term) ||
+      (u.username || "").toLowerCase().includes(term)
+    );
   };
 
   return (
@@ -253,10 +271,10 @@ const TeamManagement = () => {
       {/* Member Modal */}
       {memberModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+          <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto overflow-x-hidden">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-lg">
-                Manage {memberModal.team_name} Members
+                Manage Remote Members — {memberModal.team_name}
               </h3>
               <button
                 onClick={closeMemberModal}
@@ -271,26 +289,35 @@ const TeamManagement = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Add Member
               </label>
-              <div className="flex gap-2">
-                <select
-                  value={selectedUser}
-                  onChange={(e) => setSelectedUser(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A0D6C2] outline-none"
-                >
-                  <option value="">Select a user...</option>
-                  {getAvailableUsers().map(user => (
-                    <option key={user.id} value={user.id}>
-                      {user.full_name} ({user.email})
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={handleAddMember}
-                  disabled={!selectedUser || loading}
-                  className="px-4 py-2 bg-[#A0D6C2] text-white rounded-lg hover:bg-[#8acdb5] transition disabled:opacity-50"
-                >
-                  Add
-                </button>
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  placeholder="Search users by name, email, or username..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A0D6C2] outline-none"
+                />
+                <div className="flex flex-col md:flex-row gap-2">
+                  <select
+                    value={selectedUser}
+                    onChange={(e) => setSelectedUser(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A0D6C2] outline-none"
+                  >
+                    <option value="">Select a user...</option>
+                    {getAvailableUsers().map(user => (
+                      <option key={user.id} value={user.id}>
+                        {user.full_name || user.username} ({user.email})
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handleAddMember}
+                    disabled={!selectedUser || loading}
+                    className="md:w-auto w-full px-4 py-2 bg-[#A0D6C2] text-white rounded-lg hover:bg-[#8acdb5] transition disabled:opacity-50"
+                  >
+                    Add
+                  </button>
+                </div>
               </div>
             </div>
 

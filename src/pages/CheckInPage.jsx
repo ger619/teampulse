@@ -8,11 +8,12 @@ import { createPulseLog, clearPulseLogState, resetPulseLogSuccess } from "../red
 import { fetchMoods, fetchWorkloads } from "../redux/moodWorkload/moodWorkloadSlice";
 import { fetchTeams } from "../redux/teams/teamSlice";
 
-const CheckInPage = () => {
+const CheckInPage = ({ onNavigateTab }) => {
   const [mood, setMood] = useState(null);
   const [workload, setWorkload] = useState(null);
   const [comment, setComment] = useState("");
   const [team, setTeam] = useState("");
+  const [lastSubmission, setLastSubmission] = useState(null);
   
   const dispatch = useDispatch();
   const { loading, success, error } = useSelector((state) => state.pulseLogs);
@@ -68,29 +69,108 @@ const CheckInPage = () => {
       console.warn("WARNING: No team UUID available - submission may fail");
     }
 
+    // Keep a snapshot for post-submit processing (email alerts)
+    setLastSubmission({ mood, workload, comment, teamId: team, at: new Date().toISOString() });
     dispatch(createPulseLog(pulseLogData));
   };
 
-  // Reset success message after 3 seconds
+  // Reset success message and show redirect toast
   useEffect(() => {
     if (success) {
       const timer = setTimeout(() => {
         dispatch(resetPulseLogSuccess());
-        // Reset form
         setMood(null);
         setWorkload(null);
         setComment("");
-      }, 3000);
+      }, 2000);
+
+      const navTimer = setTimeout(() => {
+        if (typeof onNavigateTab === "function") {
+          onNavigateTab("teamfeed");
+        }
+      }, 1500);
+
+      // Fire-and-forget: send low mood email to admin via Formspree
+      if (lastSubmission && typeof lastSubmission.mood === "number" && lastSubmission.mood <= 2) {
+        try {
+          const ADMIN_EMAIL = "nemwelnyandoro20@gmail.com"; // POC default recipient
+          const FORMSPREE_URL = "https://formspree.io/f/mgedowaj";
+
+          const findTeamName = (id) => {
+            if (!id || !teams) return "";
+            const t = teams.find((tt) => tt.id === id);
+            return t?.team_name || "";
+          };
+
+          const moodEmoji = (v) => {
+            if (v <= 1) return "😞";
+            if (v === 2) return "😕";
+            if (v === 3) return "😐";
+            if (v === 4) return "🙂";
+            return "😄";
+          };
+
+          const workloadLabel = (v) => {
+            if (v <= 1) return "Light 🌤️";
+            if (v === 2) return "Moderate ⛅";
+            if (v === 3) return "Heavy 🌧️";
+            return "Overloaded ⛈️";
+          };
+
+          const u = user || {};
+          const fullName = u.first_name && u.last_name ? `${u.first_name} ${u.last_name}` : (u.name || u.username || "");
+          const teamName = findTeamName(lastSubmission.teamId);
+
+          const subject = `[TeamPulse] Low mood alert for ${fullName || u.username || "a team member"}`;
+          const bodyLines = [
+            `A team member submitted a low mood check-in.`,
+            ``,
+            `User: ${fullName || u.username || "Unknown"}`,
+            `Email: ${u.email || "n/a"}`,
+            `Team: ${teamName || "n/a"}`,
+            `Submitted at: ${new Date(lastSubmission.at).toLocaleString()}`,
+            `Mood score: ${lastSubmission.mood} ${moodEmoji(lastSubmission.mood)}`,
+            `Workload: ${workloadLabel(lastSubmission.workload)}`,
+            `Comment: ${lastSubmission.comment ? lastSubmission.comment : "(no comment)"}`,
+          ];
+
+          const payload = {
+            _subject: subject,
+            admin_email: ADMIN_EMAIL,
+            user_name: fullName || u.username || "",
+            user_email: u.email || "",
+            team_name: teamName || "",
+            mood_score: String(lastSubmission.mood),
+            workload_value: String(lastSubmission.workload),
+            message: bodyLines.join("\n"),
+          };
+
+          fetch(FORMSPREE_URL, {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          }).catch(() => {});
+        } catch (e) {
+          // swallow to avoid impacting UX
+          // console.error('Formspree alert failed', e);
+        }
+      }
       
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(navTimer);
+      };
     }
   }, [success, dispatch]);
 
   const isSubmitDisabled = !mood || !workload || loading;
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      <div className="bg-white rounded-2xl shadow-md p-6 md:p-8">
+    <div className="w-full max-w-2xl mx-auto px-3 md:px-0">
+      <div className="bg-white rounded-2xl shadow-md p-4 md:p-8">
         {/* Loading moods/workloads */}
         {moodWorkloadLoading && (
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
@@ -131,6 +211,16 @@ const CheckInPage = () => {
           </div>
         )}
 
+        {/* Redirect Toast */}
+        {success && (
+          <div className="fixed bottom-6 right-6 z-50">
+            <div className="bg-[#A0D6C2] text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+              <span className="text-sm">Redirecting to Team Feed…</span>
+            </div>
+          </div>
+        )}
+
         {/* Error Message */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
@@ -147,25 +237,29 @@ const CheckInPage = () => {
         )}
 
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Weekly Check-In</h1>
-        <p className="text-gray-600 mb-8">
+        <p className="text-gray-600 mb-6 md:mb-8">
           Let your team know how you're doing this week. Your responses are anonymous to other team members.
         </p>
 
         {/* Mood Selector */}
-        <MoodSelector selected={mood} onChange={setMood} />
+        <div className="space-y-4">
+          <MoodSelector selected={mood} onChange={setMood} />
 
         {/* Workload Selector */}
-        <WorkloadSelector selected={workload} onChange={setWorkload} />
+          <WorkloadSelector selected={workload} onChange={setWorkload} />
 
         {/* Thoughts Box */}
-        <ThoughtsBox value={comment} onChange={setComment} />
+          <ThoughtsBox value={comment} onChange={setComment} />
 
         {/* Submit Button */}
-        <SubmitButton 
-          disabled={isSubmitDisabled} 
-          loading={loading}
-          onClick={handleSubmit} 
-        />
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
+            <SubmitButton 
+              disabled={isSubmitDisabled} 
+              loading={loading}
+              onClick={handleSubmit} 
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
