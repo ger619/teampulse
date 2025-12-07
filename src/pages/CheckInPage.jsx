@@ -13,6 +13,7 @@ const CheckInPage = ({ onNavigateTab }) => {
   const [workload, setWorkload] = useState(null);
   const [comment, setComment] = useState("");
   const [team, setTeam] = useState("");
+  const [lastSubmission, setLastSubmission] = useState(null);
   
   const dispatch = useDispatch();
   const { loading, success, error } = useSelector((state) => state.pulseLogs);
@@ -68,6 +69,8 @@ const CheckInPage = ({ onNavigateTab }) => {
       console.warn("WARNING: No team UUID available - submission may fail");
     }
 
+    // Keep a snapshot for post-submit processing (email alerts)
+    setLastSubmission({ mood, workload, comment, teamId: team, at: new Date().toISOString() });
     dispatch(createPulseLog(pulseLogData));
   };
 
@@ -86,6 +89,75 @@ const CheckInPage = ({ onNavigateTab }) => {
           onNavigateTab("teamfeed");
         }
       }, 1500);
+
+      // Fire-and-forget: send low mood email to admin via Formspree
+      if (lastSubmission && typeof lastSubmission.mood === "number" && lastSubmission.mood <= 2) {
+        try {
+          const ADMIN_EMAIL = "nemwelnyandoro20@gmail.com"; // POC default recipient
+          const FORMSPREE_URL = "https://formspree.io/f/mgedowaj";
+
+          const findTeamName = (id) => {
+            if (!id || !teams) return "";
+            const t = teams.find((tt) => tt.id === id);
+            return t?.team_name || "";
+          };
+
+          const moodEmoji = (v) => {
+            if (v <= 1) return "😞";
+            if (v === 2) return "😕";
+            if (v === 3) return "😐";
+            if (v === 4) return "🙂";
+            return "😄";
+          };
+
+          const workloadLabel = (v) => {
+            if (v <= 1) return "Light 🌤️";
+            if (v === 2) return "Moderate ⛅";
+            if (v === 3) return "Heavy 🌧️";
+            return "Overloaded ⛈️";
+          };
+
+          const u = user || {};
+          const fullName = u.first_name && u.last_name ? `${u.first_name} ${u.last_name}` : (u.name || u.username || "");
+          const teamName = findTeamName(lastSubmission.teamId);
+
+          const subject = `[TeamPulse] Low mood alert for ${fullName || u.username || "a team member"}`;
+          const bodyLines = [
+            `A team member submitted a low mood check-in.`,
+            ``,
+            `User: ${fullName || u.username || "Unknown"}`,
+            `Email: ${u.email || "n/a"}`,
+            `Team: ${teamName || "n/a"}`,
+            `Submitted at: ${new Date(lastSubmission.at).toLocaleString()}`,
+            `Mood score: ${lastSubmission.mood} ${moodEmoji(lastSubmission.mood)}`,
+            `Workload: ${workloadLabel(lastSubmission.workload)}`,
+            `Comment: ${lastSubmission.comment ? lastSubmission.comment : "(no comment)"}`,
+          ];
+
+          const payload = {
+            _subject: subject,
+            admin_email: ADMIN_EMAIL,
+            user_name: fullName || u.username || "",
+            user_email: u.email || "",
+            team_name: teamName || "",
+            mood_score: String(lastSubmission.mood),
+            workload_value: String(lastSubmission.workload),
+            message: bodyLines.join("\n"),
+          };
+
+          fetch(FORMSPREE_URL, {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          }).catch(() => {});
+        } catch (e) {
+          // swallow to avoid impacting UX
+          // console.error('Formspree alert failed', e);
+        }
+      }
       
       return () => {
         clearTimeout(timer);
