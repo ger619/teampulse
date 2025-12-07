@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSelector } from "react-redux";
 import DashboardNavBar from "./DashboardNavbar";
 import DashboardHome from "./DashboardHome";
@@ -36,6 +36,13 @@ const Dashboard = ({ onLogout }) => {
     }
     setActiveTab(tab);
   };
+
+  // Guard: auto-redirect non-admins away from restricted tabs
+  useEffect(() => {
+    if (!isAdmin && (activeTab === "dashboard" || activeTab === "admin")) {
+      setActiveTab("checkin");
+    }
+  }, [isAdmin, activeTab]);
 
   return (
     <DashboardNavBar 
