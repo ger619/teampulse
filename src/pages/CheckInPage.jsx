@@ -8,7 +8,7 @@ import { createPulseLog, clearPulseLogState, resetPulseLogSuccess } from "../red
 import { fetchMoods, fetchWorkloads } from "../redux/moodWorkload/moodWorkloadSlice";
 import { fetchTeams } from "../redux/teams/teamSlice";
 
-const CheckInPage = () => {
+const CheckInPage = ({ onNavigateTab }) => {
   const [mood, setMood] = useState(null);
   const [workload, setWorkload] = useState(null);
   const [comment, setComment] = useState("");
@@ -80,6 +80,10 @@ const CheckInPage = () => {
         setMood(null);
         setWorkload(null);
         setComment("");
+        // Navigate to Team Feed after successful submission
+        if (typeof onNavigateTab === "function") {
+          onNavigateTab("teamfeed");
+        }
       }, 3000);
       
       return () => clearTimeout(timer);

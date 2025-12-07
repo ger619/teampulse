@@ -13,6 +13,8 @@ const TeamFeedView = () => {
   const dispatch = useDispatch();
   const { logs, loading } = useSelector((state) => state.pulseLogs);
   const feedbackState = useSelector((state) => state.feedbacks);
+  const { user } = useSelector((state) => state.logIn);
+  const isAdmin = !!user?.is_staff;
 
   // Fetch pulse logs and team feedbacks on mount
   useEffect(() => {
@@ -212,10 +214,14 @@ const TeamFeedView = () => {
       <div>
         <h3 className="text-[#C5A880] text-lg mb-4 font-medium">Team Feed</h3>
         <div className="space-y-4">
-          {posts.length === 0 ? (
+          {(() => {
+            const visiblePosts = isAdmin
+              ? posts
+              : posts.filter((p) => !p.isAnonymous && p.author && user?.username && p.author.toLowerCase() === user.username.toLowerCase());
+            return visiblePosts.length === 0 ? (
             <p className="text-center text-gray-400 py-10 italic">No updates yet. Be the first to share! ✨</p>
-          ) : (
-            posts.map((post) => (
+            ) : (
+              visiblePosts.map((post) => (
               <div
                 key={post.id}
                 className="bg-white rounded-2xl border-2 border-[#A0D6C2] p-5 shadow-[0_4px_12px_rgba(160,214,194,0.1)] flex gap-4 items-start transition-transform hover:-translate-y-0.5"
@@ -250,8 +256,9 @@ const TeamFeedView = () => {
                   </p>
                 </div>
               </div>
-            ))
-          )}
+              ))
+            );
+          })()}
         </div>
       </div>
     </div>

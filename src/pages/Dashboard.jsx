@@ -17,7 +17,7 @@ const Dashboard = ({ onLogout }) => {
       case "dashboard":
         return <DashboardHome />;
       case "checkin":
-        return <CheckInPage />;
+        return <CheckInPage onNavigateTab={handleTabChange} />;
       case "admin":
         return <AdminPanel />;
       case "teamfeed":
