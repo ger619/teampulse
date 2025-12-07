@@ -169,8 +169,8 @@ const CheckInPage = ({ onNavigateTab }) => {
   const isSubmitDisabled = !mood || !workload || loading;
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      <div className="bg-white rounded-2xl shadow-md p-6 md:p-8">
+    <div className="w-full max-w-2xl mx-auto px-3 md:px-0">
+      <div className="bg-white rounded-2xl shadow-md p-4 md:p-8">
         {/* Loading moods/workloads */}
         {moodWorkloadLoading && (
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
@@ -237,25 +237,29 @@ const CheckInPage = ({ onNavigateTab }) => {
         )}
 
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Weekly Check-In</h1>
-        <p className="text-gray-600 mb-8">
+        <p className="text-gray-600 mb-6 md:mb-8">
           Let your team know how you're doing this week. Your responses are anonymous to other team members.
         </p>
 
         {/* Mood Selector */}
-        <MoodSelector selected={mood} onChange={setMood} />
+        <div className="space-y-4">
+          <MoodSelector selected={mood} onChange={setMood} />
 
         {/* Workload Selector */}
-        <WorkloadSelector selected={workload} onChange={setWorkload} />
+          <WorkloadSelector selected={workload} onChange={setWorkload} />
 
         {/* Thoughts Box */}
-        <ThoughtsBox value={comment} onChange={setComment} />
+          <ThoughtsBox value={comment} onChange={setComment} />
 
         {/* Submit Button */}
-        <SubmitButton 
-          disabled={isSubmitDisabled} 
-          loading={loading}
-          onClick={handleSubmit} 
-        />
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
+            <SubmitButton 
+              disabled={isSubmitDisabled} 
+              loading={loading}
+              onClick={handleSubmit} 
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

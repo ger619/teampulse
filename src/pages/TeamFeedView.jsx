@@ -169,7 +169,7 @@ const TeamFeedView = () => {
       </div>
 
       {/* 2. Share Input Section */}
-      <div className="bg-white rounded-[2rem] border border-[#A0D6C2] p-8 shadow-sm relative">
+      <div className="bg-white rounded-[2rem] border border-[#A0D6C2] p-6 md:p-8 shadow-sm relative">
         <h3 className="text-[#8ACDB5] text-lg font-medium mb-6">Share with Your Team</h3>
         
         <textarea
@@ -179,7 +179,7 @@ const TeamFeedView = () => {
           className="w-full p-4 rounded-xl bg-[#F3F4F6] border-none focus:ring-0 outline-none resize-none h-24 text-sm text-gray-700 placeholder-gray-400 mb-6"
         />
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
           {/* Toggle Switch */}
           <label className="flex items-center gap-3 cursor-pointer select-none">
             <div className="relative">
@@ -198,7 +198,7 @@ const TeamFeedView = () => {
           <button
             onClick={handlePostSubmit}
             disabled={!newPost.trim()}
-            className={`px-8 py-2 rounded-full font-bold text-sm transition-all shadow-sm flex items-center gap-2 ${
+            className={`px-6 md:px-8 py-2 rounded-full font-bold text-sm transition-all shadow-sm flex items-center gap-2 w-full sm:w-auto ${
               newPost.trim()
                 ? "bg-[#A0D6C2] text-white hover:bg-[#8acdb5] hover:shadow-md"
                 : "bg-[#D1EBE2] text-white cursor-not-allowed opacity-70"
@@ -224,7 +224,7 @@ const TeamFeedView = () => {
               visiblePosts.map((post) => (
               <div
                 key={post.id}
-                className="bg-white rounded-2xl border-2 border-[#A0D6C2] p-5 shadow-[0_4px_12px_rgba(160,214,194,0.1)] flex gap-4 items-start transition-transform hover:-translate-y-0.5"
+                className="bg-white rounded-2xl border-2 border-[#A0D6C2] p-4 md:p-5 shadow-[0_4px_12px_rgba(160,214,194,0.1)] flex gap-4 items-start transition-transform hover:-translate-y-0.5"
               >
                 {/* Avatar */}
                 <div
@@ -251,7 +251,7 @@ const TeamFeedView = () => {
                     </span>
                   </div>
                   
-                  <p className="text-gray-600 font-serif italic text-lg leading-relaxed">
+                  <p className="text-gray-600 font-serif italic text-base md:text-lg leading-relaxed break-words">
                     {post.content}
                   </p>
                 </div>

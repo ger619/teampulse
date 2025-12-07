@@ -283,11 +283,11 @@ const DashboardHome = () => {
           <h1 className="text-2xl font-medium mb-1">Team Pulse Dashboard</h1>
           <p className="opacity-90 italic font-light">Monitor your team's wellbeing and workload</p>
         </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap w-full md:w-auto">
                <select
                   value={selectedTeamId}
                   onChange={(e) => setSelectedTeamId(e.target.value)}
-                  className="bg-white/20 border border-white/30 rounded-lg px-4 py-2 text-sm outline-none cursor-pointer hover:bg-white/30 transition"
+                  className="bg-white/20 border border-white/30 rounded-lg px-4 py-2 text-sm outline-none cursor-pointer hover:bg-white/30 transition w-full md:w-auto"
                >
                   <option value="" className="text-gray-800">All Teams</option>
                   {teams && teams.map((team) => (
@@ -296,18 +296,18 @@ const DashboardHome = () => {
                      </option>
                   ))}
                </select>
-          <button onClick={handleExportCsv} className="bg-white/20 border border-white/30 px-4 py-2 rounded-lg text-sm hover:bg-white/30 transition flex items-center gap-2">
+          <button onClick={handleExportCsv} className="bg-white/20 border border-white/30 px-4 py-2 rounded-lg text-sm hover:bg-white/30 transition flex items-center gap-2 w-full md:w-auto">
              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
              Export
           </button>
-         <button className="bg-[#5BB5A2] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4a9685] transition shadow-sm">
+             <button className="bg-[#5BB5A2] px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4a9685] transition shadow-sm w-full md:w-auto">
             Message
          </button>
          </div>
          </div>
 
       {/* 2. Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {/* Team Size */}
         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden group hover:shadow-md transition">
            <div className="absolute right-4 top-4 w-10 h-10 bg-[#A0D6C2] rounded-lg flex items-center justify-center text-white">
@@ -350,9 +350,9 @@ const DashboardHome = () => {
       </div>
 
       {/* 3. Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
          {/* Line Chart Container */}
-         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+         <div className="bg-white p-4 md:p-6 rounded-2xl border border-gray-100 shadow-sm">
             <h3 className="text-gray-500 text-sm font-medium mb-6">Team Mood Trend</h3>
             <div className="h-64 w-full relative flex items-end justify-between px-4 pb-6 border-b border-l border-gray-200">
                {/* Y-Axis Labels */}
@@ -401,7 +401,7 @@ const DashboardHome = () => {
          </div>
 
          {/* Pie/Donut Chart Container */}
-         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+         <div className="bg-white p-4 md:p-6 rounded-2xl border border-gray-100 shadow-sm">
             <h3 className="text-gray-500 text-sm font-medium mb-2">Current Workload Distribution</h3>
             <div className="flex flex-col md:flex-row items-center justify-center gap-8 h-full pb-4">
                {/* CSS Conic Gradient Pie Chart */}
@@ -440,7 +440,7 @@ const DashboardHome = () => {
       {/* 4. Member List & Filters */}
       <div>
              {/* Tabs and Date Range */}
-             <div className="flex flex-wrap gap-2 mb-6 items-center justify-between">
+             <div className="flex flex-wrap gap-2 mb-4 md:mb-6 items-center justify-between">
                   <div className="flex gap-2">
             <button 
                onClick={() => setActiveFilter('all')}
@@ -461,7 +461,7 @@ const DashboardHome = () => {
                       Pending Check-in ({members.filter(m => m.isPending).length})
             </button>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                      <label className="text-xs text-gray-500">Date:</label>
                      <select
                         value={dateRange}
@@ -488,7 +488,7 @@ const DashboardHome = () => {
          </div>
 
          {/* Grid of Cards */}
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
             {pagedMembers.map((member, idx) => (
                <div 
                   key={idx}
@@ -549,7 +549,7 @@ const DashboardHome = () => {
 
              {/* Pagination Controls */}
              {filteredMembers.length > pageSize && (
-                <div className="flex items-center justify-center gap-2 pt-4">
+                <div className="flex items-center justify-center gap-2 pt-3 md:pt-4 flex-wrap">
                    <button
                       onClick={() => setPage(p => Math.max(1, p - 1))}
                       disabled={page === 1}

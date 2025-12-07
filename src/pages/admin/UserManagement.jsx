@@ -166,7 +166,7 @@ const UserManagement = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
         <h2 className="text-2xl font-bold text-gray-800">User Management</h2>
         <div className="text-sm text-gray-500">
           Total Users: {allUsers.length} • Admins: {allUsers.filter(u => u.is_staff).length} • This Page: {currentPageUsers.length}
@@ -180,19 +180,19 @@ const UserManagement = () => {
       )}
 
       {/* Search & Quick Filters */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
         <input
           type="text"
           placeholder="Search by name or email..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A0D6C2] outline-none"
+          className="w-full sm:flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A0D6C2] outline-none"
         />
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={() => { setShowAdminsOnly(true); setPaging(p => ({ ...p, page: 1 })); }}
-            className={`px-3 py-2 text-sm rounded-md border transition ${showAdminsOnly ? "bg-purple-600 text-white border-purple-600" : "bg-white hover:bg-gray-50 border-gray-300 text-gray-700"}`}
+            className={`px-3 py-2 text-sm rounded-md border transition w-full sm:w-auto ${showAdminsOnly ? "bg-purple-600 text-white border-purple-600" : "bg-white hover:bg-gray-50 border-gray-300 text-gray-700"}`}
             title="Show admins"
           >
             Show Admins
@@ -201,7 +201,7 @@ const UserManagement = () => {
             <button
               type="button"
               onClick={() => { setShowAdminsOnly(false); setSearchTerm(""); setPaging(p => ({ ...p, page: 1 })); }}
-              className="px-3 py-2 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-gray-700"
+              className="px-3 py-2 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 w-full sm:w-auto"
               title="Clear filters"
             >
               Clear Filters
@@ -234,12 +234,12 @@ const UserManagement = () => {
                         {user.first_name?.charAt(0) || user.username?.charAt(0) || "U"}
                       </div>
                       <div>
-                        <h4 className="font-semibold text-gray-800">
+                        <h4 className="font-semibold text-gray-800 truncate" title={(user.first_name || user.last_name) ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : user.username}>
                           {user.first_name || user.last_name 
                             ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
                             : user.username}
                         </h4>
-                        <p className="text-sm text-gray-500">{user.email}</p>
+                        <p className="text-sm text-gray-500 truncate" title={user.email}>{user.email}</p>
                       </div>
                     </div>
 
@@ -308,7 +308,7 @@ const UserManagement = () => {
 
           {/* Pagination Controls */}
           { (((showAdminsOnly || searchTerm) ? filteredUsersAll.length : allUsers.length)) > (paging.pageSize || 10) && (
-            <div className="flex items-center justify-center gap-2 pt-4">
+            <div className="flex items-center justify-center gap-2 pt-3 md:pt-4 flex-wrap">
               <button
                 onClick={() => goToPage(paging.page - 1)}
                 disabled={loading || paging.page === 1}
