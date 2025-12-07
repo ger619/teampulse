@@ -20,6 +20,9 @@ const DashboardHome = () => {
   const [trendData, setTrendData] = useState([]);
   const [members, setMembers] = useState([]);
    const [activeFilter, setActiveFilter] = useState("all");
+   const [dateRange, setDateRange] = useState("this_week"); // this_week | last_week | last_month | all_time
+   const [page, setPage] = useState(1);
+   const [pageSize, setPageSize] = useState(10);
    const [selectedTeamId, setSelectedTeamId] = useState("");
 
    // Fetch data on component mount
@@ -153,11 +156,66 @@ const DashboardHome = () => {
   };
 
   // --- Filter Logic ---
-  const filteredMembers = members.filter(m => {
-    if (activeFilter === 'attention') return m.needsAttention;
-    if (activeFilter === 'pending') return m.isPending;
-    return true;
-  });
+   // Date helpers
+   const getDateBounds = () => {
+      const now = new Date();
+      const start = new Date(now);
+      const end = new Date(now);
+      if (dateRange === "this_week") {
+         const day = now.getDay();
+         const diff = (day === 0 ? 6 : day - 1); // Monday start
+         start.setDate(now.getDate() - diff);
+         start.setHours(0,0,0,0);
+         end.setHours(23,59,59,999);
+         return { start, end };
+      }
+      if (dateRange === "last_week") {
+         const day = now.getDay();
+         const diff = (day === 0 ? 6 : day - 1);
+         // end of last week is last Sunday
+         const endLastWeek = new Date(now);
+         endLastWeek.setDate(now.getDate() - diff - 1);
+         endLastWeek.setHours(23,59,59,999);
+         const startLastWeek = new Date(endLastWeek);
+         startLastWeek.setDate(endLastWeek.getDate() - 6);
+         startLastWeek.setHours(0,0,0,0);
+         return { start: startLastWeek, end: endLastWeek };
+      }
+      if (dateRange === "last_month") {
+         const firstOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+         const endLastMonth = new Date(firstOfThisMonth);
+         endLastMonth.setDate(0); // last day of previous month
+         endLastMonth.setHours(23,59,59,999);
+         const startLastMonth = new Date(endLastMonth.getFullYear(), endLastMonth.getMonth(), 1);
+         startLastMonth.setHours(0,0,0,0);
+         return { start: startLastMonth, end: endLastMonth };
+      }
+      return { start: null, end: null };
+   };
+
+   const { start: rangeStart, end: rangeEnd } = getDateBounds();
+
+   const filteredMembers = members.filter(m => {
+      // filter by tab
+      if (activeFilter === 'attention' && !m.needsAttention) return false;
+      if (activeFilter === 'pending' && !m.isPending) return false;
+      // filter by date range on latest check-in
+      if (rangeStart && rangeEnd) {
+         const ts = m.latestCheckIn?.date ? new Date(m.latestCheckIn.date) : null;
+         if (!ts) return false;
+         if (ts < rangeStart || ts > rangeEnd) return false;
+      }
+      return true;
+   });
+
+   // Reset to first page when filters change
+   useEffect(() => {
+      setPage(1);
+   }, [activeFilter, dateRange, selectedTeamId]);
+
+   const totalItems = filteredMembers.length;
+   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+   const pagedMembers = filteredMembers.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize);
 
   return (
     <div className="w-full max-w-7xl animate-fadeIn space-y-8 pb-12 font-sans text-gray-800">
@@ -332,31 +390,57 @@ const DashboardHome = () => {
 
       {/* 4. Member List & Filters */}
       <div>
-         {/* Tabs */}
-         <div className="flex gap-2 mb-6">
+             {/* Tabs and Date Range */}
+             <div className="flex flex-wrap gap-2 mb-6 items-center justify-between">
+                  <div className="flex gap-2">
             <button 
                onClick={() => setActiveFilter('all')}
                className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${activeFilter === 'all' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >
-               All Team ({members.length})
+                      All Team ({members.length})
             </button>
             <button 
                onClick={() => setActiveFilter('attention')}
                className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${activeFilter === 'attention' ? 'bg-[#F7A68C] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >
-               Needs Attention ({members.filter(m => m.needsAttention).length})
+                      Needs Attention ({members.filter(m => m.needsAttention).length})
             </button>
             <button 
                onClick={() => setActiveFilter('pending')}
                className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${activeFilter === 'pending' ? 'bg-gray-400 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >
-               Pending Check-in ({members.filter(m => m.isPending).length})
+                      Pending Check-in ({members.filter(m => m.isPending).length})
             </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                     <label className="text-xs text-gray-500">Date:</label>
+                     <select
+                        value={dateRange}
+                        onChange={(e) => setDateRange(e.target.value)}
+                        className="px-3 py-1.5 rounded-full text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"
+                        title="Filter by date range"
+                     >
+                        <option value="this_week">This Week</option>
+                        <option value="last_week">Last Week</option>
+                        <option value="last_month">Last Month</option>
+                        <option value="all_time">All Time</option>
+                     </select>
+                     <select
+                        value={pageSize}
+                        onChange={(e) => setPageSize(Number(e.target.value))}
+                        className="px-3 py-1.5 rounded-full text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"
+                        title="Items per page"
+                     >
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                     </select>
+                  </div>
          </div>
 
          {/* Grid of Cards */}
          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredMembers.map((member, idx) => (
+            {pagedMembers.map((member, idx) => (
                <div 
                   key={idx}
                   className={`bg-white p-5 rounded-xl border shadow-sm flex items-start justify-between relative overflow-hidden ${member.needsAttention ? 'border-[#F7A68C] border-l-4' : 'border-gray-100 border-l-4 border-l-[#A0D6C2]'}`}
@@ -407,12 +491,51 @@ const DashboardHome = () => {
                </div>
             ))}
 
-            {filteredMembers.length === 0 && (
+                  {filteredMembers.length === 0 && (
                <div className="col-span-full py-10 text-center text-gray-400 italic bg-gray-50 rounded-xl border border-dashed border-gray-200">
                   No team members found for this filter.
                </div>
             )}
          </div>
+
+             {/* Pagination Controls */}
+             {filteredMembers.length > pageSize && (
+                <div className="flex items-center justify-center gap-2 pt-4">
+                   <button
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="px-3 py-2 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50"
+                   >
+                      Prev
+                   </button>
+                   {Array.from({ length: totalPages }).map((_, idx) => {
+                      const pageNum = idx + 1;
+                      const isActive = pageNum === page;
+                      const shouldShow = pageNum === 1 || pageNum === totalPages || Math.abs(pageNum - page) <= 1;
+                      if (!shouldShow) {
+                         if (pageNum === 2 && page > 3) return <span key={pageNum} className="px-2">…</span>;
+                         if (pageNum === totalPages - 1 && page < totalPages - 2) return <span key={pageNum} className="px-2">…</span>;
+                         return null;
+                      }
+                      return (
+                         <button
+                            key={pageNum}
+                            onClick={() => setPage(pageNum)}
+                            className={`px-3 py-2 text-sm rounded-md border ${isActive ? "bg-[#A0D6C2] text-white border-[#A0D6C2]" : "bg-white hover:bg-gray-50 border-gray-300"}`}
+                         >
+                            {pageNum}
+                         </button>
+                      );
+                   })}
+                   <button
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      className="px-3 py-2 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50"
+                   >
+                      Next
+                   </button>
+                </div>
+             )}
       </div>
     </div>
    );
