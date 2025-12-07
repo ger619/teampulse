@@ -217,6 +217,55 @@ const DashboardHome = () => {
    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
    const pagedMembers = filteredMembers.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize);
 
+   const escapeCsv = (val) => {
+      if (val === null || val === undefined) return "";
+      const s = String(val);
+      if (/[",\n]/.test(s)) {
+         return '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+   };
+
+   const handleExportCsv = () => {
+      const headers = [
+         "Name",
+         "Email",
+         "Team",
+         "Mood",
+         "Workload",
+         "Thoughts",
+         "Date",
+         "Needs Attention",
+      ];
+      const rows = pagedMembers.map(m => {
+         const mood = getMoodDetails(m.latestCheckIn?.mood)?.label || "";
+         const workload = getWorkloadLabel(m.latestCheckIn?.workload) || "";
+         return [
+            m.name || "",
+            m.email || "",
+            m.team || "",
+            mood,
+            workload,
+            m.latestCheckIn?.thoughts || "",
+            m.latestCheckIn?.date ? formatDate(m.latestCheckIn.date) : "",
+            m.needsAttention ? "Yes" : "No",
+         ];
+      });
+      const csv = [headers, ...rows]
+         .map(row => row.map(escapeCsv).join(","))
+         .join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const filenameSuffix = dateRange === 'all_time' ? 'all-time' : dateRange.replace('_', '-');
+      a.download = `team-pulse-${activeFilter}-${filenameSuffix}-page-${page}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+   };
+
   return (
     <div className="w-full max-w-7xl animate-fadeIn space-y-8 pb-12 font-sans text-gray-800">
       
@@ -247,7 +296,7 @@ const DashboardHome = () => {
                      </option>
                   ))}
                </select>
-          <button className="bg-white/20 border border-white/30 px-4 py-2 rounded-lg text-sm hover:bg-white/30 transition flex items-center gap-2">
+          <button onClick={handleExportCsv} className="bg-white/20 border border-white/30 px-4 py-2 rounded-lg text-sm hover:bg-white/30 transition flex items-center gap-2">
              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
              Export
           </button>
